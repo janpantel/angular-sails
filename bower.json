@@ -1,0 +1,20 @@
+{
+  "name": "angular-sails-service",
+  "version": "0.0.1",
+  "authors": [
+    "Jan Pantel <info@janpantel.de>"
+  ],
+  "description": "An angular service for using the sails socket.io api",
+  "main": "angular-sails.js",
+  "keywords": [
+    "angular",
+    "angularjs",
+    "sails",
+    "sailsjs",
+    "socket.io",
+    "service",
+    "api"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/kyjan/angular-sails-service"
+}
