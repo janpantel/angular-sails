@@ -9,12 +9,13 @@
 
 //Replace the app variable with your angular module
 app.factory('$sails', function ($rootScope) {
+    'use strict';
     var socket = io.connect();
     return {
         on: function (event, cb) {
             socket.on(event, function () {
                 var args = arguments;
-                $rootScope.$apply(function() {
+                $rootScope.$apply(function () {
                     cb.apply(socket, args);
                 });
             });
@@ -22,7 +23,7 @@ app.factory('$sails', function ($rootScope) {
         get: function (url, cb) {
             socket.get(url, function () {
                 var args = arguments;
-                $rootScope.$apply(function() {
+                $rootScope.$apply(function () {
                     cb.apply(socket, args);
                 });
             });
@@ -33,7 +34,7 @@ app.factory('$sails', function ($rootScope) {
                 $rootScope.$apply(function () {
                     cb.apply(socket, args);
                 });
-            })
+            });
         },
         put: function (url, data, cb) {
             socket.put(url, data, function () {
@@ -51,5 +52,5 @@ app.factory('$sails', function ($rootScope) {
                 });
             });
         }
-    }
+    };
 });
