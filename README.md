@@ -5,6 +5,12 @@ This small service allows you to use Sails.JS's awesome socket.io api with Angul
 
 Just add a dependency to your controllers and get it going!
 
+Install it:
+
+```shell
+bower install angular-sails-service
+```
+
 A small example:
 
 ```javascript
