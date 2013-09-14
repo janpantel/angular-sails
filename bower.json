@@ -2,7 +2,7 @@
   "name": "angular-sails-service",
   "version": "0.0.1",
   "authors": [
-    "Jan Pantel <info@janpantel.de>"
+    "Jan-Oliver Pantel <info@janpantel.de>"
   ],
   "description": "An angular service for using the sails socket.io api",
   "main": "angular-sails.js",
