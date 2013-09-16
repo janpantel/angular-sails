@@ -14,7 +14,11 @@ bower install angular-sails-service
 A small example:
 
 ```javascript
-angular.module("MyApp", []).controller("FooController", function ($scope, $sails) {
+var app = angular.module("MyApp", []);
+
+angular.sails_connector.attachToModule(app);
+
+app.controller("FooController", function ($scope, $sails) {
   $scope.bars = [];
   
   (function () {
