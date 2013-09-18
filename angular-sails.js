@@ -8,6 +8,7 @@
  */
 
 (function (angular) {
+    'use strict';
     var ngSailsModule = angular.module('ngSails', []);
 
     ngSailsModule.provider('$sails', $SailsProvider);
@@ -59,6 +60,6 @@
                     });
                 }
             };
-        }
-    };
+        };
+    }
 }(angular));
