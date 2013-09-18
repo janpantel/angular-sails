@@ -1,5 +1,5 @@
-Angular Sails Service
-=====================
+Angular Sails
+=============
 
 This small module allows you to use Sails.JS's awesome socket.io api with AngularJS.
 
