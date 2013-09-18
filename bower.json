@@ -1,10 +1,10 @@
 {
-  "name": "angular-sails-service",
-  "version": "0.0.2",
+  "name": "angular-sails",
+  "version": "0.0.3",
   "authors": [
     "Jan-Oliver Pantel <info@janpantel.de>"
   ],
-  "description": "An angular service for using the sails socket.io api",
+  "description": "An angular provider for using the sails socket.io api",
   "main": "angular-sails.js",
   "keywords": [
     "angular",
@@ -12,9 +12,9 @@
     "sails",
     "sailsjs",
     "socket.io",
-    "service",
+    "provider",
     "api"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/kyjan/angular-sails-service"
+  "homepage": "https://github.com/kyjan/angular-sails"
 }

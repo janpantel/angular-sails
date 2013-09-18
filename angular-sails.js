@@ -7,11 +7,16 @@
  * file that was distributed with this source code.
  */
 
-angular.sails_connector = {
-    attachToModule: function (module) {
-        'use strict';
-        module.factory('$sails', function ($rootScope) {
-            var socket = io.connect();
+(function (angular) {
+    var ngSailsModule = angular.module('ngSails', []);
+
+    ngSailsModule.provider('$sails', $SailsProvider);
+
+    function $SailsProvider() {
+
+        var socket = io.connect();
+
+        this.$get = function ($rootScope) {
             return {
                 on: function (event, cb) {
                     socket.on(event, function () {
@@ -54,6 +59,6 @@ angular.sails_connector = {
                     });
                 }
             };
-        });
-    }
-};
+        }
+    };
+}(angular));
