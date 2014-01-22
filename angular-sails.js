@@ -61,8 +61,16 @@
                     });
                 });
             },
-            get: function (url, cb) {
+            list: function (url, cb) {
                 socket.get(url, function () {
+                    var args = arguments;
+                    $rootScope.$apply(function () {
+                        cb.apply(socket, args);
+                    });
+                });
+            },
+            get: function (url, data, cb) {
+                socket.get(url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
                         cb.apply(socket, args);

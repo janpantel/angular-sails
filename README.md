@@ -23,8 +23,12 @@ app.controller("FooController", function ($scope, $sails) {
   $scope.bars = [];
   
   (function () {
-    $sails.get("/bars", function (data) {
+    $sails.list("/bars", function (data) {
       $scope.bars = data;
+    });
+
+    $sails.get("/bars", {"id": 1}, function (data) {
+      $scope.firstBar = data;
     });
     
     $sails.on("message", function (message) {
