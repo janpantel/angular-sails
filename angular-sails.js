@@ -85,8 +85,8 @@
                     });
                 });
             },
-            delete: function (url, data, cb) {
-                socket.delete(url, data, function () {
+            'delete': function (url, data, cb) {
+                socket['delete'](url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
                         cb.apply(socket, args);
