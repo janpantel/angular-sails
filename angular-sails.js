@@ -70,6 +70,9 @@
                 });
             },
             post: function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                }
                 socket.post(url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
@@ -78,6 +81,9 @@
                 });
             },
             put: function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                }
                 socket.put(url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
@@ -86,6 +92,9 @@
                 });
             },
             'delete': function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                }
                 socket['delete'](url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
