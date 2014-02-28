@@ -61,8 +61,12 @@
                     });
                 });
             },
-            get: function (url, cb) {
-                socket.get(url, function () {
+            get: function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                    data = null;
+                }
+                socket.get(url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
                         cb.apply(socket, args);
@@ -70,6 +74,10 @@
                 });
             },
             post: function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                    data = null;
+                }
                 socket.post(url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
@@ -78,6 +86,10 @@
                 });
             },
             put: function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                    data = null;
+                }
                 socket.put(url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
@@ -86,6 +98,10 @@
                 });
             },
             'delete': function (url, data, cb) {
+                if (cb === undefined && typeof data === 'function') {
+                    cb = data;
+                    data = null;
+                }
                 socket['delete'](url, data, function () {
                     var args = arguments;
                     $rootScope.$apply(function () {
