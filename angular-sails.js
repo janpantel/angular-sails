@@ -13,7 +13,7 @@
     'use strict';
     var ngSailsModule = angular.module('ngSails', []);
 
-    ngSailsModule.service('$sails', ['$rootScope', function ($rootScope) {
+    ngSailsModule.service('$sails', ['$q', function ($q) {
 
         var socket = io.connect(),
             connected = false,
@@ -29,6 +29,28 @@
         socket.on('disconnect', function () {
             connected = false;
         });
+        
+        function defer() {
+            var deferred = $q.defer(),
+                promise = deferred.promise;
+            
+            promise.success = function (fn) {
+                promise.then(function (response) {
+                    fn(response);
+                });
+                return promise;
+            };
+
+            // Not sure this could ever happen... sails.io is currently handling errors, and we never reject below.
+            promise.error = function (fn) {
+                promise.then(null, function (response) {
+                    fn(response);
+                });
+                return promise;
+            };
+
+            return deferred;
+        }
 
         return {
             reconnect: function (url, options) {
@@ -54,62 +76,63 @@
                 socket.emit(event, data);
             },
             on: function (event, cb) {
+                var deferred = defer();
+                deferred.promise.then(cb);
                 socket.on(event, function () {
-                    var args = arguments;
-                    $rootScope.$apply(function () {
-                        cb.apply(socket, args);
-                    });
+                    deferred.resolve.apply(socket, arguments);
                 });
+                return deferred.promise;
             },
             get: function (url, data, cb) {
+                var deferred = defer();
                 if (cb === undefined && typeof data === 'function') {
                     cb = data;
                     data = null;
                 }
+                deferred.promise.then(cb);
                 socket.get(url, data, function () {
-                    var args = arguments;
-                    $rootScope.$apply(function () {
-                        cb.apply(socket, args);
-                    });
+                    deferred.resolve.apply(socket, arguments);
                 });
+                return deferred.promise;
             },
             post: function (url, data, cb) {
+                var deferred = defer();
                 if (cb === undefined && typeof data === 'function') {
                     cb = data;
                     data = null;
                 }
+                deferred.promise.then(cb);
                 socket.post(url, data, function () {
-                    var args = arguments;
-                    $rootScope.$apply(function () {
-                        cb.apply(socket, args);
-                    });
+                    deferred.resolve.apply(socket, arguments);
                 });
+                return deferred.promise;
             },
             put: function (url, data, cb) {
+                var deferred = defer();
                 if (cb === undefined && typeof data === 'function') {
                     cb = data;
                     data = null;
                 }
+                deferred.promise.then(cb);
                 socket.put(url, data, function () {
-                    var args = arguments;
-                    $rootScope.$apply(function () {
-                        cb.apply(socket, args);
-                    });
+                    deferred.resolve.apply(socket, arguments);
                 });
+                return deferred.promise;
             },
             'delete': function (url, data, cb) {
+                var deferred = defer();
                 if (cb === undefined && typeof data === 'function') {
                     cb = data;
                     data = null;
                 }
+                deferred.promise.then(cb);
                 socket['delete'](url, data, function () {
-                    var args = arguments;
-                    $rootScope.$apply(function () {
-                        cb.apply(socket, args);
-                    });
+                    deferred.resolve.apply(socket, arguments);
                 });
+                return deferred.promise;
             }
         };
+        
     }]);
 
 }(angular, io));
