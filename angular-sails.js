@@ -21,7 +21,7 @@
 
         socket.on('connect', function () {
             connected = true;
-            if (typeof reconnectAttempt === 'function') {
+            if (angular.isFunction(reconnectAttempt)) {
                 reconnectAttempt();
                 reconnectAttempt = null;
             }
@@ -41,7 +41,6 @@
                 return promise;
             };
 
-            // Not sure this could ever happen... sails.io is currently handling errors, and we never reject below.
             promise.error = function (fn) {
                 promise.then(null, function (response) {
                     fn(response);
@@ -50,6 +49,15 @@
             };
 
             return deferred;
+        }
+        
+        function resolveOrReject(deferred, data){
+            // Make sure what is passed is an object that has a status and if that status is no 2xx, reject.
+            if(data && angular.isObject(data) && data.status && ~~(data.status / 100) !== 2){
+                deferred.reject(data);
+            }else{
+                deferred.resolve(data);
+            }
         }
 
         return {
@@ -78,56 +86,56 @@
             on: function (event, cb) {
                 var deferred = defer();
                 deferred.promise.then(cb);
-                socket.on(event, function () {
-                    deferred.resolve.apply(socket, arguments);
+                socket.on(event, function (result) {
+                    resolveOrReject(deferred, result);
                 });
                 return deferred.promise;
             },
             get: function (url, data, cb) {
                 var deferred = defer();
-                if (cb === undefined && typeof data === 'function') {
+                if (cb === undefined && angular.isFunction(data)) {
                     cb = data;
                     data = null;
                 }
                 deferred.promise.then(cb);
-                socket.get(url, data, function () {
-                    deferred.resolve.apply(socket, arguments);
+                socket.get(url, data, function (result) {
+                    resolveOrReject(deferred, result);
                 });
                 return deferred.promise;
             },
             post: function (url, data, cb) {
                 var deferred = defer();
-                if (cb === undefined && typeof data === 'function') {
+                if (cb === undefined && angular.isFunction(data)) {
                     cb = data;
                     data = null;
                 }
                 deferred.promise.then(cb);
-                socket.post(url, data, function () {
-                    deferred.resolve.apply(socket, arguments);
+                socket.post(url, data, function (result) {
+                    resolveOrReject(deferred, result);
                 });
                 return deferred.promise;
             },
             put: function (url, data, cb) {
                 var deferred = defer();
-                if (cb === undefined && typeof data === 'function') {
+                if (cb === undefined && angular.isFunction(data)) {
                     cb = data;
                     data = null;
                 }
                 deferred.promise.then(cb);
-                socket.put(url, data, function () {
-                    deferred.resolve.apply(socket, arguments);
+                socket.put(url, data, function (result) {
+                    resolveOrReject(deferred, result);
                 });
                 return deferred.promise;
             },
             'delete': function (url, data, cb) {
                 var deferred = defer();
-                if (cb === undefined && typeof data === 'function') {
+                if (cb === undefined && angular.isFunction(data)) {
                     cb = data;
                     data = null;
                 }
                 deferred.promise.then(cb);
-                socket['delete'](url, data, function () {
-                    deferred.resolve.apply(socket, arguments);
+                socket['delete'](url, data, function (result) {
+                    resolveOrReject(deferred, result);
                 });
                 return deferred.promise;
             }
