@@ -21,12 +21,17 @@ var app = angular.module("MyApp", ['ngSails']);
 
 app.controller("FooController", function ($scope, $sails) {
   $scope.bars = [];
-  
+
   (function () {
-    $sails.get("/bars", function (data) {
-      $scope.bars = data;
-    });
-    
+    $sails.get("/bars")
+      .success(function (data) {
+        $scope.bars = data;
+      })
+      .error(function (data) {
+        alert('Houston, we got a problem!');
+      });
+
+
     $sails.on("message", function (message) {
       if (message.verb === "create") {
         $scope.bars.push(message.data);
