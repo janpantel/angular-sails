@@ -13,7 +13,7 @@
     'use strict';
     var ngSailsModule = angular.module('ngSails', []);
 
-    ngSailsModule.service('$sails', ['$q', function ($q) {
+    ngSailsModule.service('$sails', ['$q', '$timeout', function ($q, $timeout) {
 
         var socket = io.connect(),
             connected = false,
@@ -29,11 +29,11 @@
         socket.on('disconnect', function () {
             connected = false;
         });
-        
+
         function defer() {
             var deferred = $q.defer(),
                 promise = deferred.promise;
-            
+
             promise.success = function (fn) {
                 promise.then(function (response) {
                     fn(response);
@@ -50,7 +50,7 @@
 
             return deferred;
         }
-        
+
         function resolveOrReject(deferred, data){
             // Make sure what is passed is an object that has a status and if that status is no 2xx, reject.
             if(data && angular.isObject(data) && data.status && ~~(data.status / 100) !== 2){
@@ -84,12 +84,13 @@
                 socket.emit(event, data);
             },
             on: function (event, cb) {
-                var deferred = defer();
-                deferred.promise.then(cb);
-                socket.on(event, function (result) {
-                    resolveOrReject(deferred, result);
-                });
-                return deferred.promise;
+                if (cb !== undefined && angular.isFunction(cb)) {
+                    socket.on(event, function (result) {
+                        $timeout(function () {
+                          cb(result);
+                        });
+                    });
+                }
             },
             get: function (url, data, cb) {
                 var deferred = defer();
@@ -140,7 +141,7 @@
                 return deferred.promise;
             }
         };
-        
+
     }]);
 
 }(angular, io));
