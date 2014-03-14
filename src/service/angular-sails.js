@@ -16,20 +16,7 @@
     ngSailsModule.provider('$sails', function () {
         this.$get = ['$q', '$timeout', function ($q, $timeout) {
 
-            var socket = io.connect(),
-                connected = false,
-                reconnectAttempt = null;
-    
-            socket.on('connect', function () {
-                connected = true;
-                if (angular.isFunction(reconnectAttempt)) {
-                    reconnectAttempt();
-                    reconnectAttempt = null;
-                }
-            });
-            socket.on('disconnect', function () {
-                connected = false;
-            });
+            var socket = io.connect();
     
             function defer() {
                 var deferred = $q.defer(),
@@ -52,32 +39,16 @@
                 return deferred;
             }
     
-            function resolveOrReject(deferred, data){
+            function resolveOrReject(deferred, data) {
                 // Make sure what is passed is an object that has a status and if that status is no 2xx, reject.
-                if(data && angular.isObject(data) && data.status && ~~(data.status / 100) !== 2){
+                if (data && angular.isObject(data) && data.status && Math.floor(data.status / 100) !== 2) {
                     deferred.reject(data);
-                }else{
+                } else {
                     deferred.resolve(data);
                 }
             }
     
             return {
-                reconnect: function (url, options) {
-                    var exec = function () {
-                        socket.disconnect();
-                        if (socket.socket !== undefined) {
-                            socket.socket.connect(url, options);
-                        }
-                    };
-                    //If we are connected, we can execute the reconnect right away.
-                    //If we are not, we queue it up, to execute it during to connect event occured.
-                    if (connected === true) {
-                        exec();
-                    } else {
-                        reconnectAttempt = exec;
-                    }
-    
-                },
                 disconnect: function () {
                     socket.disconnect();
                 },
@@ -88,10 +59,13 @@
                     if (cb !== undefined && angular.isFunction(cb)) {
                         socket.on(event, function (result) {
                             $timeout(function () {
-                              cb(result);
+                                cb(result);
                             });
                         });
                     }
+                },
+                off: function (event) {
+                    socket.removeAllListeners(event);
                 },
                 get: function (url, data, cb) {
                     var deferred = defer();
@@ -142,7 +116,7 @@
                     return deferred.promise;
                 }
             };
-        }]
+        }];
     });
 
 }(angular, io));
