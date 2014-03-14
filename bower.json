@@ -16,5 +16,8 @@
     "api"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/kyjan/angular-sails"
+  "homepage": "https://github.com/kyjan/angular-sails",
+  "dependencies": {
+    "angular": ">=1.2.*"
+  }
 }
