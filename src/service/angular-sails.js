@@ -14,9 +14,13 @@
     var ngSailsModule = angular.module('ngSails', []);
 
     ngSailsModule.provider('$sails', function () {
+        var provider = this;
+        
+        this.url = undefined;
+        
         this.$get = ['$q', '$timeout', function ($q, $timeout) {
 
-            var socket = io.connect();
+            var socket = io.connect(provider.url);
     
             function defer() {
                 var deferred = $q.defer(),
