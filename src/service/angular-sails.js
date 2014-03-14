@@ -64,6 +64,15 @@
                         });
                     }
                 },
+                once: function (event, cb) {
+                    if (cb !== undefined && angular.isFunction(cb)) {
+                        socket.once(event, function (result) {
+                            $timeout(function () {
+                                cb(result);
+                            });
+                        });
+                    }
+                },
                 off: function (event) {
                     socket.removeAllListeners(event);
                 },
