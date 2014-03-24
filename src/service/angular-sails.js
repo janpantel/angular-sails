@@ -15,6 +15,8 @@
 
     ngSailsModule.provider('$sails', function () {
         var provider = this;
+        var httpVerbs = ['get', 'post', 'put', 'delete'];
+        var eventNames = ['on', 'once'];
 
         this.url = undefined;
         this.interceptors = [];
@@ -24,21 +26,15 @@
                 defer = function () {
                     var deferred = $q.defer(),
                         promise = deferred.promise;
-    
+
                     promise.success = function (fn) {
-                        promise.then(function (response) {
-                            fn(response);
-                        });
-                        return promise;
+                        return promise.then(fn);
                     };
-    
+
                     promise.error = function (fn) {
-                        promise.then(null, function (response) {
-                            fn(response);
-                        });
-                        return promise;
+                        return promise.then(null, fn);
                     };
-    
+
                     return deferred;
                 },
                 resolveOrReject = function (deferred, data) {
@@ -53,77 +49,35 @@
                     $timeout(function () {
                         cb(data);
                     });
+                },
+                promisify = function (methodName) {
+                    socket['legacy_' + methodName] = socket[methodName];
+                    socket[methodName] = function (url, data, cb) {
+                        var deferred = defer();
+                        if (cb === undefined && angular.isFunction(data)) {
+                            cb = data;
+                            data = null;
+                        }
+                        deferred.promise.then(cb);
+                        socket['legacy_' + methodName](url, data, function (result) {
+                            resolveOrReject(deferred, result);
+                        });
+                        return deferred.promise;
+                    };
+                },
+                wrapEvent = function (eventName) {
+                    socket['legacy_' + eventName] = socket[eventName];
+                    socket[eventName] = function (event, cb) {
+                        if (cb != null && angular.isFunction(cb)) {
+                            socket['legacy_' + eventName](event, function (result) {
+                                angularify(cb, result);
+                            });
+                        }
+                    };
                 };
 
-            socket.legacy_get = socket.get;
-            socket.legacy_post = socket.post;
-            socket.legacy_put = socket.put;
-            socket.legacy_delete = socket['delete'];
-            socket.legacy_on = socket.on;
-            socket.legacy_once = socket.once;
-
-            socket.get = function (url, data, cb) {
-                var deferred = defer();
-                if (cb === undefined && angular.isFunction(data)) {
-                    cb = data;
-                    data = null;
-                }
-                deferred.promise.then(cb);
-                socket.legacy_get(url, data, function (result) {
-                    resolveOrReject(deferred, result);
-                });
-                return deferred.promise;
-            };
-            socket.post = function (url, data, cb) {
-                var deferred = defer();
-                if (cb === undefined && angular.isFunction(data)) {
-                    cb = data;
-                    data = null;
-                }
-                deferred.promise.then(cb);
-                socket.legacy_post(url, data, function (result) {
-                    resolveOrReject(deferred, result);
-                });
-                return deferred.promise;
-            };
-            socket.put = function (url, data, cb) {
-                var deferred = defer();
-                if (cb === undefined && angular.isFunction(data)) {
-                    cb = data;
-                    data = null;
-                }
-                deferred.promise.then(cb);
-                socket.legacy_put(url, data, function (result) {
-                    resolveOrReject(deferred, result);
-                });
-                return deferred.promise;
-            };
-            socket['delete'] = function (url, data, cb) {
-                var deferred = defer();
-                if (cb === undefined && angular.isFunction(data)) {
-                    cb = data;
-                    data = null;
-                }
-                deferred.promise.then(cb);
-                socket.legacy_delete(url, data, function (result) {
-                    resolveOrReject(deferred, result);
-                });
-                return deferred.promise;
-            };
-            socket.on = function (event, cb) {
-                if (cb !== undefined && angular.isFunction(cb)) {
-                    socket.legacy_on(event, function (result) {
-                        angularify(cb, result);
-                    });
-                }
-            };
-            socket.once = function (event, cb) {
-                if (cb !== undefined && angular.isFunction(cb)) {
-                    socket.legacy_once(event, function (result) {
-                        angularify(cb, result);
-                    });
-                }
-            };
+            angular.forEach(httpVerbs, promisify);
+            angular.forEach(eventNames, wrapEvent);
 
             return socket;
         }];
