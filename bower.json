@@ -19,5 +19,15 @@
   "homepage": "https://github.com/kyjan/angular-sails",
   "dependencies": {
     "angular": ">=1.2.*"
-  }
+  },
+  "ignore": [
+    "**/.*",
+    "gulpfile.js",
+    "package.json",
+    "node_modules",
+    "bower_components",
+    "app/bower_components",
+    "test",
+    "tests"
+  ]
 }
