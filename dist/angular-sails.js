@@ -1,3 +1,9 @@
+/*global angular */
+(function (angular) {
+    'use strict';
+    angular.module('ngSails', ['ng']);
+}(angular));
+
 /*global angular, io */
 (function (angular, io) {
     'use strict';
