@@ -1,6 +1,6 @@
 /*jslint sloppy:true*/
 /*global angular, io */
-angular.module('ngSails', []).provider('$sails', function () {
+angular.module('ngSails').provider('$sails', function () {
     var provider = this,
         httpVerbs = ['get', 'post', 'put', 'delete'],
         eventNames = ['on', 'once'];
