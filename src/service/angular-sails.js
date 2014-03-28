@@ -15,11 +15,13 @@ angular.module('ngSails').provider('$sails', function () {
                     promise = deferred.promise;
 
                 promise.success = function (fn) {
-                    return promise.then(fn);
+                    promise.then(fn);
+                    return promise;
                 };
 
                 promise.error = function (fn) {
-                    return promise.then(null, fn);
+                    promise.then(null, fn);
+                    return promise;
                 };
 
                 return deferred;
