@@ -1,37 +1,13 @@
 /*jslint sloppy:true*/
 /*global angular, io */
-angular.module('ngSails', []).provider('$sails', function () {
+angular.module('ngSails', []).provider('$sails', ['$sailsInterceptor',function ($sailsInterceptor) {
     var provider = this,
         httpVerbs = ['get', 'post', 'put', 'delete'],
         eventNames = ['on', 'once'];
 
     this.url = undefined;
-    var interceptorFactories = this.interceptors = [];
-    var responseInterceptorFactories = this.responseInterceptors = [];
 
     this.$get = ['$q', '$timeout', '$injector', function ($q, $timeout, $injector) {
-
-        var reversedInterceptors = [];
-
-        angular.forEach(interceptorFactories, function (interceptorFactory) {
-            reversedInterceptors.unshift(angular.isString(interceptorFactory)
-                ? $injector.get(interceptorFactory) : $injector.invoke(interceptorFactory));
-        });
-
-        angular.forEach(responseInterceptorFactories, function (interceptorFactory, index) {
-            var responseFn = angular.isString(interceptorFactory)
-                ? $injector.get(interceptorFactory)
-                : $injector.invoke(interceptorFactory);
-
-            reversedInterceptors.splice(index, 0, {
-                response: function (response) {
-                    return responseFn($q.when(response));
-                },
-                responseError: function (response) {
-                    return responseFn($q.reject(response));
-                }
-            });
-        });
 
         var socket = io.connect(provider.url),
             angularify = function (cb, data) {
@@ -47,6 +23,7 @@ angular.module('ngSails', []).provider('$sails', function () {
                         data = null;
                     }
 
+                    // The request needs to be built in this scope as the socket is in this scope.
                     function sendRequest(config) {
                         var deferred = $q.defer();
 
@@ -60,34 +37,19 @@ angular.module('ngSails', []).provider('$sails', function () {
 
                         return deferred.promise;
                     }
+                    
+                    var promise = $sailsInterceptor(sendRequest, {url: url, data: data});
 
-                    var chain = [sendRequest, undefined];
-                    var promise = $q.when({url: url, data: data, cb: cb});
+                    // Call the callback that was passed as an argument
+                    promise = promise.then(cb, null);
 
-
-                    angular.forEach(reversedInterceptors, function (interceptor) {
-                        if (interceptor.request || interceptor.requestError) {
-                            chain.unshift(interceptor.request, interceptor.requestError);
-                        }
-                        if (interceptor.response || interceptor.responseError) {
-                            chain.push(interceptor.response, interceptor.responseError);
-                        }
-                    });
-
-                    while (chain.length) {
-                        var thenFn = chain.shift();
-                        var rejectFn = chain.shift();
-
-                        promise = promise.then(thenFn, rejectFn);
-                    }
-
-                    promise.then(cb, null);
-
+                    // Set up success chaining on the returned promise
                     promise.success = function (fn) {
                         promise.then(fn);
                         return promise;
                     };
 
+                    // Set up error chaining on the returned promise
                     promise.error = function (fn) {
                         promise.then(null, fn);
                         return promise;
