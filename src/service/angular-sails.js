@@ -1,6 +1,6 @@
 /*jslint sloppy:true*/
 /*global angular, io */
-angular.module('ngSails', []).provider('$sails', ['$sailsInterceptor',function ($sailsInterceptor) {
+angular.module('ngSails', []).provider('$sails', ['$sailsInterceptor', function ($sailsInterceptor) {
     var provider = this,
         httpVerbs = ['get', 'post', 'put', 'delete'],
         eventNames = ['on', 'once'];
@@ -37,7 +37,7 @@ angular.module('ngSails', []).provider('$sails', ['$sailsInterceptor',function (
 
                         return deferred.promise;
                     }
-                    
+
                     var promise = $sailsInterceptor(sendRequest, {url: url, data: data});
 
                     // Call the callback that was passed as an argument
@@ -74,4 +74,4 @@ angular.module('ngSails', []).provider('$sails', ['$sailsInterceptor',function (
 
         return socket;
     }];
-});
+}]);
