@@ -35,7 +35,14 @@ angular.module('ngSails').provider('$sails', function () {
                 
                 // means status is a status Number
                 var status = data.status;
-                if (status.match(/\d+/)[0].length === status.length && Math.floor(status / 100) !== 2) {
+                var isNumber = status.match(/\d+/);
+                
+                // status is not Number
+                if ( ! isNumber) {
+                    return deferred.resolve(data);
+                }
+                
+                if (isNumber[0].length === status.length && Math.floor(status / 100) !== 2) {
                     return deferred.reject(data);
                 }
                 
