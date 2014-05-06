@@ -28,11 +28,19 @@ angular.module('ngSails').provider('$sails', function () {
             },
             resolveOrReject = function (deferred, data) {
                 // Make sure what is passed is an object that has a status and if that status is no 2xx, reject.
-                if (data && angular.isObject(data) && data.status && Math.floor(data.status / 100) !== 2) {
-                    deferred.reject(data);
-                } else {
-                    deferred.resolve(data);
+                data = data || { status: 400 };
+                if (angular.isObject(data) && data.status) {
+                    return deferred.reject(data);
                 }
+                
+                // means status is a status Number
+                var status = data.status;
+                if (status.match(/\d+/)[0].length === status.length && Math.floor(status / 100) !== 2) {
+                    return deferred.reject(data);
+                }
+                
+                // Otherwise, the respose will be a String.
+                return deferred.resolve(data);
             },
             angularify = function (cb, data) {
                 $timeout(function () {
