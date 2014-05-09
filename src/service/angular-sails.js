@@ -35,14 +35,15 @@ angular.module('ngSails').provider('$sails', function () {
                 
                 // means status is a status Number
                 var status = data.status;
-                var isNumber = status.match(/\d+/);
+                var isNotaNumber = isNaN(status);
                 
                 // status is not Number
-                if ( ! isNumber) {
+                if (isNotaNumber) {
                     return deferred.resolve(data);
                 }
                 
-                if (isNumber[0].length === status.length && Math.floor(status / 100) !== 2) {
+                // After condition status should be a number, then process status
+                if (Math.floor(status / 100) !== 2) {
                     return deferred.reject(data);
                 }
                 
