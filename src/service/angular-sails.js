@@ -8,6 +8,30 @@ angular.module('ngSails').provider('$sails', function () {
     this.url = undefined;
     this.interceptors = [];
 
+    this.statusRule = function (data) {
+        data = data || { status: 400 };
+        if (angular.isObject(data) && data.status) {
+            return false;
+        }
+
+        // means status is a status Number
+        var status = data.status;
+        var isNotaNumber = isNaN(status);
+
+        // status is not Number
+        if (isNotaNumber) {
+            return true;
+        }
+
+        // After condition status should be a number, then process status
+        if (Math.floor(status / 100) !== 2) {
+            return false;
+        }
+
+        // Otherwise, the respose will be a String.
+        return true;
+    };
+
     this.$get = ['$q', '$timeout', function ($q, $timeout) {
         var socket = io.connect(provider.url),
             defer = function () {
@@ -28,27 +52,11 @@ angular.module('ngSails').provider('$sails', function () {
             },
             resolveOrReject = function (deferred, data) {
                 // Make sure what is passed is an object that has a status and if that status is no 2xx, reject.
-                data = data || { status: 400 };
-                if (angular.isObject(data) && data.status) {
-                    return deferred.reject(data);
-                }
-                
-                // means status is a status Number
-                var status = data.status;
-                var isNotaNumber = isNaN(status);
-                
-                // status is not Number
-                if (isNotaNumber) {
+                if (provider.statusRule(data)) {
                     return deferred.resolve(data);
                 }
-                
-                // After condition status should be a number, then process status
-                if (Math.floor(status / 100) !== 2) {
-                    return deferred.reject(data);
-                }
-                
-                // Otherwise, the respose will be a String.
-                return deferred.resolve(data);
+
+                return deferred.reject(data);
             },
             angularify = function (cb, data) {
                 $timeout(function () {
