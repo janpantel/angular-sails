@@ -46,6 +46,27 @@ app.controller("FooController", function ($scope, $sails) {
 });
 ```
 
+defined status rule: return value if it is `true`, will trigger success event, otherwise `false`, trigger error event. 
+
+```javascript
+var app = angular.module("MyApp", ['ngSails']);
+
+//OPTIONAL! Set socket URL!
+app.config(['$sailsProvider', function ($sailsProvider) {
+    $sailsProvider.statusRule = function (data) {
+        if (data.status == "ok") {
+            return true;
+        }
+
+        if (data.status == "fails") {
+            return false;
+        }
+
+        return true;
+    };
+}]);
+```
+
 API Refenrence
 --------------
 
