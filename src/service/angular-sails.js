@@ -10,7 +10,7 @@ angular.module('ngSails').provider('$sails', function () {
 
     this.statusRule = function (data) {
         data = data || { status: 400 };
-        if (angular.isObject(data) && data.status) {
+        if ( ! angular.isObject(data)) {
             return false;
         }
 
