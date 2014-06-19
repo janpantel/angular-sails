@@ -1,6 +1,6 @@
 /*jslint sloppy:true*/
 /*global angular, io */
-angular.module('ngSails', []).provider('$sailsInterceptor', function () {
+angular.module('ngSails.$sailsInterceptor', []).provider('$sailsInterceptor', function () {
 
     var interceptorFactories = this.interceptors = [];
     var responseInterceptorFactories = this.responseInterceptors = [];

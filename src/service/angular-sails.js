@@ -1,13 +1,16 @@
 /*jslint sloppy:true*/
 /*global angular, io */
-angular.module('ngSails', []).provider('$sails', ['$sailsInterceptor', function ($sailsInterceptor) {
+angular.module('ngSails.$sails', ['ngSails.$sailsInterceptor']).provider('$sails', ['$sailsInterceptorProvider', function ($sailsInterceptorProvider) {
     var provider = this,
         httpVerbs = ['get', 'post', 'put', 'delete'],
         eventNames = ['on', 'once'];
 
     this.url = undefined;
 
-    this.$get = ['$q', '$timeout', '$injector', function ($q, $timeout, $injector) {
+    this.interceptors = $sailsInterceptorProvider.interceptors;
+    this.responseInterceptors = $sailsInterceptorProvider.responseInterceptors;
+
+    this.$get = ['$q', '$timeout', '$sailsInterceptor', function ($q, $timeout, $sailsInterceptor) {
 
         var socket = io.connect(provider.url),
             angularify = function (cb, data) {
