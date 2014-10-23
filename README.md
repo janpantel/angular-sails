@@ -46,7 +46,7 @@ app.controller("FooController", function ($scope, $sails) {
 });
 ```
 
-API Refenrence
+API Reference
 --------------
 
 ### Sails.JS REST ###
