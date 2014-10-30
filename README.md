@@ -37,8 +37,8 @@ app.controller("FooController", function ($scope, $sails) {
       });
 
 
-    $sails.on("message", function (message) {
-      if (message.verb === "create") {
+    $sails.on("bars", function (message) {
+      if (message.verb === "created") {
         $scope.bars.push(message.data);
       }
     });
