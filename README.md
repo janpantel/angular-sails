@@ -13,6 +13,7 @@ bower install angular-sails
 
 Usage
 -----
+You must include [socket.io-client](https://github.com/Automattic/socket.io-client) and [sails.io.js](https://github.com/balderdashy/sails.io.js) before this script.
 
 A small example:
 
