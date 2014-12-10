@@ -10,11 +10,10 @@ Install it:
 ```shell
 bower install angular-sails
 ```
+You must also include [sails.io.js](https://github.com/balderdashy/sails.io.js) in order to use this.
 
 Usage
 -----
-You must include [socket.io-client](https://github.com/Automattic/socket.io-client) and [sails.io.js](https://github.com/balderdashy/sails.io.js) before this script.
-
 A small example:
 
 ```javascript
