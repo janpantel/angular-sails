@@ -10,10 +10,10 @@ Install it:
 ```shell
 bower install angular-sails
 ```
+You must also include [sails.io.js](https://github.com/balderdashy/sails.io.js) in order to use this.
 
 Usage
 -----
-
 A small example:
 
 ```javascript
