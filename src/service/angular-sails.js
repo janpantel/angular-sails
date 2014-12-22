@@ -17,14 +17,14 @@ angular.module('ngSails').provider('$sails', function () {
 
                 promise.success = function (fn) {
                     promise.then(function(response) {
-                        fn(response.data, response.status, response.headers, config);
+                        fn(response.data, response.status, response.headers);
                     });
                     return promise;
                 };
 
                 promise.error = function (fn) {
                     promise.then(null, function(response) {
-                        fn(response.data, response.status, response.headers, config);
+                        fn(response.data, response.status, response.headers);
                     });
                     return promise;
                 };
