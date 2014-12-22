@@ -31,7 +31,18 @@ angular.module('ngSails').provider('$sails', function () {
 
                 return deferred;
             },
-            resolveOrReject = this.responseHandler || function (deferred, jwr) {
+            resolveOrReject = this.responseHandler || function (deferred, response) {
+                var jwr = response;
+
+                // backward compatibility with older sails.io (no JWR)
+                if(!(response instanceof Object && obj.constructor.name == "JWR")){
+                    jwr = {
+                        body: response,
+                        headers: response.headers || {},
+                        statusCode: response.statusCode || response.status
+                    };
+                }
+
                 // angular $http returns the 'body' as 'data'.
                 jwr.data = jwr.body;
 
@@ -61,7 +72,7 @@ angular.module('ngSails').provider('$sails', function () {
                     }
                     deferred.promise.then(cb);
                     socket['legacy_' + methodName](url, data, function (emulatedHTTPBody, jsonWebSocketResponse) {
-                        resolveOrReject(deferred, jsonWebSocketResponse);
+                        resolveOrReject(deferred, jsonWebSocketResponse || emulatedHTTPBody);
                     });
                     return deferred.promise;
                 };
