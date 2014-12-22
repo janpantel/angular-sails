@@ -11,6 +11,7 @@ angular.module('ngSails').provider('$sails', function () {
 
     this.url = undefined;
     this.interceptors = [];
+    this.responseHandler = undefined;
 
     this.$get = ['$q', '$timeout', function ($q, $timeout) {
         var socket = io.connect(provider.url),
@@ -19,23 +20,34 @@ angular.module('ngSails').provider('$sails', function () {
                     promise = deferred.promise;
 
                 promise.success = function (fn) {
-                    promise.then(fn);
+                    promise.then(function(response) {
+                        fn(response.data, response.status, response.headers, config);
+                    });
                     return promise;
                 };
 
                 promise.error = function (fn) {
-                    promise.then(null, fn);
+                    promise.then(null, function(response) {
+                        fn(response.data, response.status, response.headers, config);
+                    });
                     return promise;
                 };
 
                 return deferred;
             },
-            resolveOrReject = function (deferred, data) {
-                // Make sure what is passed is an object that has a status and if that status is no 2xx, reject.
-                if (data && angular.isObject(data) && data.status && Math.floor(data.status / 100) !== 2) {
-                    deferred.reject(data);
+            resolveOrReject = this.responseHandler || function (deferred, jwr) {
+                // angular $http returns the 'body' as 'data'.
+                jwr.data = jwr.body;
+
+                // angular $http returns the 'statusCode' as 'status'.
+                jwr.status = jwr.statusCode;
+
+                // TODO: map 'status'/'statusCode' to a 'statusText' to mimic angular $http
+
+                if (jwr.error) {
+                    deferred.reject(jwr);
                 } else {
-                    deferred.resolve(data);
+                    deferred.resolve(jwr);
                 }
             },
             angularify = function (cb, data) {
@@ -52,8 +64,8 @@ angular.module('ngSails').provider('$sails', function () {
                         data = null;
                     }
                     deferred.promise.then(cb);
-                    socket['legacy_' + methodName](url, data, function (result) {
-                        resolveOrReject(deferred, result);
+                    socket['legacy_' + methodName](url, data, function (emulatedHTTPBody, jsonWebSocketResponse) {
+                        resolveOrReject(deferred, jsonWebSocketResponse);
                     });
                     return deferred.promise;
                 };
