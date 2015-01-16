@@ -28,15 +28,24 @@ app.controller("FooController", function ($scope, $sails) {
   $scope.bars = [];
 
   (function () {
+    // Using .success() and .error()
     $sails.get("/bars")
-      .success(function (data) {
+      .success(function (data, status, headers) {
         $scope.bars = data;
       })
-      .error(function (data) {
+      .error(function (data, status, headers) {
         alert('Houston, we got a problem!');
       });
 
+    // Using .then()
+    $sails.get("/bars")
+      .then(function(resp){
+          $scope.bars = resp.data;
+      }, function(resp){
+        alert('Houston, we got a problem!');
+      });
 
+    // Watching for updates
     $sails.on("bars", function (message) {
       if (message.verb === "created") {
         $scope.bars.push(message.data);
