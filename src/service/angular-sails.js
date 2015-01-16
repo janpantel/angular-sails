@@ -35,7 +35,7 @@ angular.module('ngSails').provider('$sails', function () {
                 var jwr = response;
 
                 // backward compatibility with older sails.io (no JWR)
-                if(!(response instanceof Object && obj.constructor.name == "JWR")){
+                if(!(response instanceof Object && response.constructor.name === "JWR")){
                     jwr = {
                         body: response,
                         headers: response.headers || {},
