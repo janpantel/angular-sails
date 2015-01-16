@@ -18,13 +18,18 @@
   "license": "MIT",
   "homepage": "https://github.com/kyjan/angular-sails",
   "dependencies": {
-    "angular": ">=1.2.*"
+    "angular": ">=1.2.*",
+    "sails.io.js": "*"
+  },
+  "devDependencies":{
+    "angular-mocks": ">=1.2.*"
   },
   "ignore": [
     "**/.*",
     "gulpfile.js",
     "package.json",
     "node_modules",
+    "build"
     "bower_components",
     "app/bower_components",
     "test",

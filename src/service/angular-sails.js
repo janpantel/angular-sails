@@ -9,7 +9,8 @@ angular.module('ngSails').provider('$sails', function () {
     this.interceptors = [];
     this.responseHandler = undefined;
 
-    this.$get = ['$q', '$timeout', function ($q, $timeout) {
+    // @ngInject
+    this.$get = function ($q, $timeout) {
         var socket = io.connect(provider.url),
             defer = function () {
                 var deferred = $q.defer(),
@@ -34,7 +35,6 @@ angular.module('ngSails').provider('$sails', function () {
             resolveOrReject = this.responseHandler || function (deferred, response) {
                 var jwr = response;
 
-                // backward compatibility with older sails.io (no JWR)
                 if(!(response instanceof Object && response.constructor.name === "JWR")){
                     jwr = {
                         body: response,
@@ -43,10 +43,8 @@ angular.module('ngSails').provider('$sails', function () {
                     };
                 }
 
-                // angular $http returns the 'body' as 'data'.
                 jwr.data = jwr.body;
 
-                // angular $http returns the 'statusCode' as 'status'.
                 jwr.status = jwr.statusCode;
 
                 // TODO: map 'status'/'statusCode' to a 'statusText' to mimic angular $http
@@ -82,6 +80,7 @@ angular.module('ngSails').provider('$sails', function () {
                 socket[eventName] = function (event, cb) {
                     if (cb !== null && angular.isFunction(cb)) {
                         socket['legacy_' + eventName](event, function (result) {
+                            console.log('!!!', result);
                             angularify(cb, result);
                         });
                     }
@@ -92,5 +91,5 @@ angular.module('ngSails').provider('$sails', function () {
         angular.forEach(eventNames, wrapEvent);
 
         return socket;
-    }];
+    };
 });
