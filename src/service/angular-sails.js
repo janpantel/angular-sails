@@ -10,7 +10,7 @@ angular.module('ngSails').provider('$sails', function () {
     this.responseHandler = undefined;
 
     this.$get = ['$q', '$timeout', function ($q, $timeout) {
-        var socket = io.connect(provider.url),
+        var socket = (io.sails || io).connect(provider.url),
             defer = function () {
                 var deferred = $q.defer(),
                     promise = deferred.promise;
