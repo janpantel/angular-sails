@@ -1,74 +1,168 @@
-/*jslint sloppy:true*/
-/*global angular, io */
-angular.module('ngSails').provider('$sails', function () {
-    var provider = this,
-        httpVerbs = ['get', 'post', 'put', 'delete'],
-        eventNames = ['on', 'once'];
+(function(angular, io) {
+  'use strict';
+  io.sails.autoConnect = false;
+  window.io.sails.useCORSRouteToGetCookie = false;
+
+  /*global angular */
+  angular.module('ngSails', ['ng']);
+
+  /*global angular, io */
+  angular.module('ngSails').provider('$sails', function() {
+    var provider = this;
+
+    // wrap these socket.io methods with angular promises
+    this.httpVerbs = ['get', 'post', 'put', 'delete'];
+
+    // wrap these events in $evalAsync to fire a digest cycle
+    this.eventNames = ['on', 'once'];
 
     this.url = undefined;
-    this.interceptors = [];
-    this.responseHandler = undefined;
+    this.base = '';
+    this.config = {};
+    this.debug = false;
 
-    this.$get = ['$q', '$timeout', function ($q, $timeout) {
-        var socket = io.connect(provider.url),
-            defer = function () {
-                var deferred = $q.defer(),
-                    promise = deferred.promise;
+    // like https://docs.angularjs.org/api/ng/service/$http#interceptors
+    // but with sails.io arguments
+    var interceptorFactories = this.interceptors = [
+      /*function($injectables) {
+         return {
+           request: function(config) {},
+           response: function(response) {},
+           requestError: function(config) {},
+           responseError: function(response) {}
+         };
+       }*/
+    ];
 
-                promise.success = function (fn) {
-                    promise.then(fn);
-                    return promise;
-                };
+    this.$get = ['$q', '$injector', '$rootScope', '$log', function($q, $injector, $rootScope, $log) {
+      var socket = (io.sails || io).connect(provider.url, provider.config);
 
-                promise.error = function (fn) {
-                    promise.then(null, fn);
-                    return promise;
-                };
+      // build interceptor chain
+      var reversedInterceptors = [];
+      angular.forEach(interceptorFactories, function(interceptorFactory) {
+        reversedInterceptors.unshift(
+          angular.isString(interceptorFactory) ?
+            $injector.get(interceptorFactory) : $injector.invoke(interceptorFactory));
+      });
 
-                return deferred;
-            },
-            resolveOrReject = this.responseHandler || function (deferred, data) {
-                // Make sure what is passed is an object that has a status that is a number and if that status is no 2xx, reject.
-                if (data && angular.isObject(data) && data.status && !isNaN(data.status) && Math.floor(data.status / 100) !== 2) {
-                    deferred.reject(data);
-                } else {
-                    deferred.resolve(data);
-                }
-            },
-            angularify = function (cb, data) {
-                $timeout(function () {
-                    cb(data);
-                });
-            },
-            promisify = function (methodName) {
-                socket['legacy_' + methodName] = socket[methodName];
-                socket[methodName] = function (url, data, cb) {
-                    var deferred = defer();
-                    if (cb === undefined && angular.isFunction(data)) {
-                        cb = data;
-                        data = null;
-                    }
-                    deferred.promise.then(cb);
-                    socket['legacy_' + methodName](url, data, function (result) {
-                        resolveOrReject(deferred, result);
-                    });
-                    return deferred.promise;
-                };
-            },
-            wrapEvent = function (eventName) {
-                socket['legacy_' + eventName] = socket[eventName];
-                socket[eventName] = function (event, cb) {
-                    if (cb !== null && angular.isFunction(cb)) {
-                        socket['legacy_' + eventName](event, function (result) {
-                            angularify(cb, result);
-                        });
-                    }
-                };
-            };
+      // Send the request using the socket
+      function serverRequest(config) {
+        var defer = $q.defer();
+        if(provider.debug) $log.info('$sails ' + config.method.toUpperCase() + ' ' + config.url, config.data || '');
 
-        angular.forEach(httpVerbs, promisify);
-        angular.forEach(eventNames, wrapEvent);
+        socket['legacy_' + config.method](config.url, config.data, function(result, jwr) {
+          // resolve promise if JSON web response is an object that has a statusCode 2xx
+          jwr.data = result; // backward compat, jwr.body also holds your data
+          jwr.socket = socket;
+          jwr.url = config.url;
+          jwr.method = config.method;
+          jwr.config = config.config;
+          if(!jwr || !angular.isObject(jwr) || !jwr.statusCode || jwr.statusCode < 200 || jwr.statusCode >= 300) {
+            if(provider.debug) $log.warn('$sails response ' + jwr.statusCode + ' ' + config.url, jwr);
+            defer.reject(jwr);
+          } else {
+            if(provider.debug) $log.info('$sails response ' + config.url, jwr);
+            defer.resolve(jwr);
+          }
+        });
+        return defer.promise;
+      }
 
-        return socket;
+      // Wrap a socket.io method within the promis chain
+      function promisify(methodName) {
+        socket['legacy_' + methodName] = socket[methodName];
+
+        socket[methodName] = function(url, data, config) {
+
+          var chain = [serverRequest, undefined];
+          var promise = $q.when({
+            url: provider.base + url,
+            data: data,
+            socket: socket,
+            config: config || {},
+            method: methodName
+          });
+
+          // apply interceptors
+          angular.forEach(reversedInterceptors, function(interceptor) {
+            if(interceptor.request || interceptor.requestError) {
+              chain.unshift(interceptor.request, interceptor.requestError);
+            }
+            if(interceptor.response || interceptor.responseError) {
+              chain.push(interceptor.response, interceptor.responseError);
+            }
+          });
+
+          while(chain.length) {
+            var thenFn = chain.shift();
+            var rejectFn = chain.shift();
+
+            promise = promise.then(thenFn, rejectFn);
+          }
+
+          return promise;
+        };
+      }
+
+
+      // Wrap events to ensure a $digest cycle
+      function wrapEvent(eventName) {
+        socket['legacy_' + eventName] = socket[eventName];
+        socket[eventName] = function(event, cb) {
+          if(cb !== null && angular.isFunction(cb)) {
+            socket['legacy_' + eventName](event, function(result) {
+              $rootScope.$evalAsync(cb.bind(socket, result));
+            });
+          }
+        };
+      }
+
+
+      angular.forEach(provider.httpVerbs, promisify);
+      angular.forEach(provider.eventNames, wrapEvent);
+
+
+      /**
+       * Update a model on sails pushes
+       * @param {string} name       Sails model name
+       * @param {objcet} modelObj   angular model object
+       * @todo remove the lodash dependency
+       */
+      socket.$modelUpdater = function(name, modelObj) {
+
+        socket.on(name, function(message) {
+          switch(message.verb) {
+
+            case "created":
+              // create new model item
+              modelObj.push(message.data);
+              break;
+
+            case "updated":
+              var obj = _.find(modelObj, {id: parseInt(message.id, 10)});
+
+              // cant update if the angular-model does not have the item and the
+              // sails message does not give us the previous record
+              if(!obj && !message.previous) return;
+
+              if(!obj) {
+                // sails has given us the previous record, create it in our model
+                obj = _.clone(message.previous);
+                modelObj.push(obj);
+              }
+
+              // update the model item
+              _.merge(obj, message.data);
+              break;
+
+            case "destroyed":
+              _.remove(modelObj, {id: parseInt(message.id, 10)});
+              break;
+          }
+        });
+      };
+
+      return socket;
     }];
-});
+  });
+}(angular, io));
