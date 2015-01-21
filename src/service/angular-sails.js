@@ -183,22 +183,28 @@
 
       /**
        * Update a model on sails pushes
-       * @param {string} name       Sails model name
-       * @param {objcet} modelObj   angular model object
-       * @todo remove the lodash dependency
+       * @param {String} name       Sails model name
+       * @param {Array} models      Array with model objects
        */
-      socket.$modelUpdater = function(name, modelObj) {
+      socket.$modelUpdater = function(name, models) {
 
         socket.on(name, function(message) {
+          var i;
           switch(message.verb) {
 
             case "created":
               // create new model item
-              modelObj.push(message.data);
+              models.push(message.data);
               break;
 
             case "updated":
-              var obj = _.find(modelObj, {id: parseInt(message.id, 10)});
+              var obj;
+              for(i=0; i<models.length; i++) {
+                if(models[i].id == message.id) {
+                  obj = models[i];
+                  break;
+                }
+              }
 
               // cant update if the angular-model does not have the item and the
               // sails message does not give us the previous record
@@ -206,16 +212,21 @@
 
               if(!obj) {
                 // sails has given us the previous record, create it in our model
-                obj = _.clone(message.previous);
-                modelObj.push(obj);
+                obj = message.previous;
+                models.push(obj);
               }
 
               // update the model item
-              _.merge(obj, message.data);
+              angular.extend(obj, message.data);
               break;
 
             case "destroyed":
-              _.remove(modelObj, {id: parseInt(message.id, 10)});
+              for(i = 0; i < models.length; i++) {
+                if(models[i].id == message.id) {
+                  models.splice(i, 1);
+                  break;
+                }
+              }
               break;
           }
         });
