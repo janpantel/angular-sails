@@ -3,6 +3,42 @@
   io.sails.autoConnect = false;
   window.io.sails.useCORSRouteToGetCookie = false;
 
+  // copied from angular
+  function parseHeaders(headers) {
+    var parsed = Object.create(null), key, val, i;
+    if(!headers) return parsed;
+    forEach(headers.split('\n'), function(line) {
+      i = line.indexOf(':');
+      key = lowercase(trim(line.substr(0, i)));
+      val = trim(line.substr(i + 1));
+      if(key) {
+        parsed[key] = parsed[key] ? parsed[key] + ', ' + val : val;
+      }
+    });
+
+    return parsed;
+  }
+  function trim(value) {
+    return angular.isString(value) ? value.trim() : value;
+  }
+
+  // copied from angular
+  function headersGetter(headers) {
+    var headersObj = angular.isObject(headers) ? headers : undefined;
+    return function(name) {
+      if(!headersObj) headersObj = parseHeaders(headers);
+      if(name) {
+        var value = headersObj[lowercase(name)];
+        if(value === void 0) {
+          value = null;
+        }
+        return value;
+      }
+      return headersObj;
+    };
+  }
+
+
   /*global angular */
   angular.module('ngSails', ['ng']);
 
@@ -52,10 +88,11 @@
 
         socket['legacy_' + config.method](config.url, config.data, function(result, jwr) {
           // resolve promise if JSON web response is an object that has a statusCode 2xx
-          jwr.data = result; // backward compat, jwr.body also holds your data
+          jwr.data = result; // backward and $http compat
+          jwr.status = jwr.statusCode; // $http compat
           jwr.socket = socket;
           jwr.url = config.url;
-          jwr.method = config.method;
+          jwr.method = config.method.toUpperCase();
           jwr.config = config.config;
           if(!jwr || !angular.isObject(jwr) || !jwr.statusCode || jwr.statusCode < 200 || jwr.statusCode >= 300) {
             if(provider.debug) $log.warn('$sails response ' + jwr.statusCode + ' ' + config.url, jwr);
@@ -99,6 +136,20 @@
 
             promise = promise.then(thenFn, rejectFn);
           }
+
+          // be $http compatible
+          promise.success = function(fn) {
+            promise.then(function(jwr) {
+              fn(jwr.body, jwr.statusCode, headersGetter(jwr.headers), jwr);
+            });
+            return promise;
+          };
+          promise.error = function(fn) {
+            promise.then(null, function(jwr) {
+              fn(jwr.body, jwr.statusCode, headersGetter(jwr.headers), jwr);
+            });
+            return promise;
+          };
 
           return promise;
         };
