@@ -1,7 +1,6 @@
 (function(angular, io) {
   'use strict';
   io.sails.autoConnect = false;
-  window.io.sails.useCORSRouteToGetCookie = false;
 
   // copied from angular
   function parseHeaders(headers) {
@@ -52,9 +51,17 @@
     // wrap these events in $evalAsync to fire a digest cycle
     this.eventNames = ['on', 'once'];
 
+    // the url to connect to
     this.url = undefined;
-    this.base = '';
-    this.config = {};
+    
+    // Prefix every request with this url
+    this.urlPrefix = '';
+    
+    this.config = {
+      // Transports to use when communicating with the server, in the order they will be tried
+      transports: ['websocket', 'polling'],
+      useCORSRouteToGetCookie: false
+    };
     this.debug = false;
 
     // like https://docs.angularjs.org/api/ng/service/$http#interceptors
@@ -88,13 +95,14 @@
 
         socket['legacy_' + config.method](config.url, config.data, function(result, jwr) {
           // resolve promise if JSON web response is an object that has a statusCode 2xx
+          if(!jwr) jwr = {};
           jwr.data = result; // backward and $http compat
           jwr.status = jwr.statusCode; // $http compat
           jwr.socket = socket;
           jwr.url = config.url;
           jwr.method = config.method.toUpperCase();
           jwr.config = config.config;
-          if(!jwr || !angular.isObject(jwr) || !jwr.statusCode || jwr.statusCode < 200 || jwr.statusCode >= 300) {
+          if(jwr.error || jwr.statusCode < 200 || jwr.statusCode >= 300) {
             if(provider.debug) $log.warn('$sails response ' + jwr.statusCode + ' ' + config.url, jwr);
             defer.reject(jwr);
           } else {
@@ -113,7 +121,7 @@
 
           var chain = [serverRequest, undefined];
           var promise = $q.when({
-            url: provider.base + url,
+            url: provider.urlPrefix + url,
             data: data,
             socket: socket,
             config: config || {},
