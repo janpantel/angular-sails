@@ -80,7 +80,6 @@ angular.module('ngSails').provider('$sails', function () {
                 socket[eventName] = function (event, cb) {
                     if (cb !== null && angular.isFunction(cb)) {
                         socket['legacy_' + eventName](event, function (result) {
-                            console.log('!!!', result);
                             angularify(cb, result);
                         });
                     }

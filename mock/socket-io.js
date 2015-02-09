@@ -1,6 +1,7 @@
-var io = {
-    connect: createMockSocketObject
-};
+function io (){
+    var mockSocketObject = createMockSocketObject();
+    return mockSocketObject.connect();
+}
 
 function createMockSocketObject () {
 
@@ -9,7 +10,7 @@ function createMockSocketObject () {
             (this._listeners[ev] = this._listeners[ev] || []).push(fn);
         },
         once: function (ev, fn) {
-            (this._listeners[ev] = this._listeners[ev] || []).push(fn);
+            (this._raw._listeners[ev] = this._raw._listeners[ev] || []).push(fn);
             fn._once = true;
         },
         emit: function (ev, data) {
@@ -20,7 +21,7 @@ function createMockSocketObject () {
                         this.removeListener(ev, listener);
                     }
                     listener.apply(null, Array.prototype.slice.call(args, 1));
-                }.bind(this));
+                },this);
             }
         },
         _listeners: {},
@@ -41,8 +42,15 @@ function createMockSocketObject () {
                 this._listeners = {};
             }
         },
-        disconnect: function () {},
-        connect: function () {}
+        disconnect: function () {
+            this.connected = false;
+            this.emit('disconnect');
+        },
+        connect: function () {
+            this.connected = true;
+            this.emit('connect');
+            return this;
+        }
     };
 
     return socket;
