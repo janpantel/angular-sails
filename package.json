@@ -1,8 +1,12 @@
 {
   "name": "angular-sails",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "An angular provider for using the sails socket.io api",
+  "scripts": {
+      "build": "gulp build-js",
+      "test": "gulp test"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kyjan/angular-sails.git"
@@ -18,6 +22,17 @@
     "gulp-concat": "^2.2.0",
     "gulp-uglify": "^0.2.1",
     "gulp-header": "^1.0.2",
-    "gulp-footer": "^1.0.4"
+    "gulp-footer": "^1.0.4",
+    "gulp-karma": "0.0.4",
+    "gulp-ng-annotate": "^0.3.3",
+    "karma": "^0.12.21",
+    "karma-chai-sinon": "^0.1.4",
+    "karma-chrome-launcher": "~0.1.0",
+    "karma-firefox-launcher": "~0.1.0",
+    "karma-mocha": "~0.1",
+    "karma-phantomjs-launcher": "~0.1.0",
+    "karma-script-launcher": "~0.1.0",
+    "sinon": "^1.12.1",
+    "sinon-chai": "^2.6.0"
   }
 }
