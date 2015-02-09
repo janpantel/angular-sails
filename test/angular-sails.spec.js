@@ -15,23 +15,14 @@ describe('Agnular Sails', function() {
             error: {
                 body: 'Error!',
                 statusCode: 500
-            },
-            fallbacksuccess: {
-                message: 'Success!',
-                status: 200 // previously we looked for 'status'
-            },
-            fallbackerror: {
-                message: 'Error!',
-                status: 500 // previously we looked for 'status'
             }
         };
 
     beforeEach(module('ngSails'));
 
-    beforeEach(inject(function(_$rootScope_, _$compile_, _$timeout_, _$sails_) {
-        $scope = _$rootScope_.$new();
+    beforeEach(inject(function(_$rootScope_, _$compile_, _$sails_) {
+        $scope = _$rootScope_;
         $compile = _$compile_;
-        $timeout = _$timeout_;
         $sails = _$sails_;
         mockIoSocket = $sails._raw;
         spy = sinon.spy();
@@ -44,7 +35,7 @@ describe('Agnular Sails', function() {
             mockIoSocket.emit('event');
 
             expect(spy).to.have.been.not.called;
-            $timeout.flush();
+            $scope.$digest();
 
             expect(spy).to.have.been.calledOnce;
         });
@@ -59,7 +50,7 @@ describe('Agnular Sails', function() {
             mockIoSocket.emit('event');
 
             expect(spy).to.have.been.not.called;
-            $timeout.flush();
+            $scope.$digest();
 
             expect(spy).to.have.been.calledOnce;
         });
@@ -70,7 +61,7 @@ describe('Agnular Sails', function() {
 
             mockIoSocket.emit('event');
             mockIoSocket.emit('event');
-            $timeout.flush();
+            $scope.$digest();
 
             expect(spy).to.have.been.calledOnce;
         });
@@ -140,24 +131,6 @@ describe('Agnular Sails', function() {
                     expect(spy).to.have.been.calledOnce;
                 });
 
-                it('should resolve successes with jwr fallback', function () {
-
-                    $sails[method]('fallbacksuccess').then(spy, errorSpy);
-                    $scope.$digest();
-
-                    expect(errorSpy).to.have.been.not.called;
-                    expect(spy).to.have.been.calledOnce;
-                });
-
-                it('should reject errors with jwr fallback', function () {
-
-                    $sails[method]('fallbackerror').then(errorSpy, spy);
-                    $scope.$digest();
-
-                    expect(errorSpy).to.have.been.not.called;
-                    expect(spy).to.have.been.calledOnce;
-                });
-
                 it('should call success for successes', function () {
 
                     $sails[method]('success').success(spy).error(errorSpy);
@@ -179,5 +152,70 @@ describe('Agnular Sails', function() {
             });
 
         });
+    });
+
+    describe('modelUpdater', function() {
+
+        var models;
+        var modelResponse;
+
+        beforeEach(function() {
+            models = [];
+            $sails.$modelUpdater('user', models);
+            modelResponse = {
+                created:{
+                    data: {
+                        createdAt: "2014-08-01T05:50:19.855Z",
+                        id: 1,
+                        name: "joe",
+                        updatedAt: "2014-08-01T05:50:19.855Z"
+                    },
+                    id: 1,
+                    verb: "created"
+                },
+                updated:{
+                    data: {
+                        createdAt: "2014-08-01T05:50:19.855Z",
+                        id: 1,
+                        name: "joe Changed",
+                        updatedAt: "2014-08-01T05:51:19.855Z"
+                    },
+                    id: 1,
+                    verb: "updated"
+                },
+                destroyed:{
+                    id: 1,
+                    verb: "destroyed"
+                }
+            };
+        });
+
+        it('should add created model to models', function () {
+            mockIoSocket.emit('user', modelResponse.created);
+            $scope.$digest();
+            expect(models).to.contain(modelResponse.created.data);
+        });
+
+        it('should update existing model in models', function () {
+            models.push(modelResponse.created.data);
+            mockIoSocket.emit('user', modelResponse.updated);
+            $scope.$digest();
+            expect(models[0].name).to.equal(modelResponse.updated.data.name);
+        });
+
+        it('should remove destroyed model in models', function () {
+            models.push(modelResponse.created.data);
+            mockIoSocket.emit('user', modelResponse.destroyed);
+            $scope.$digest();
+            expect(models).to.be.empty();
+        });
+
+        it('should add non-existent updated model to models based on previous', function () {
+            modelResponse.updated.previous = modelResponse.created.data;
+            mockIoSocket.emit('user', modelResponse.updated);
+            $scope.$digest();
+            expect(models[0].name).to.equal(modelResponse.updated.data.name);
+        });
+
     });
 });

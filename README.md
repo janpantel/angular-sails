@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/janpantel/angular-sails.svg?branch=master)](https://travis-ci.org/janpantel/angular-sails)
+
 Angular Sails
 =============
 
@@ -30,10 +32,10 @@ app.controller("FooController", function ($scope, $sails) {
   (function () {
     // Using .success() and .error()
     $sails.get("/bars")
-      .success(function (data, status, headers) {
+      .success(function (data, status, headers, jwr) {
         $scope.bars = data;
       })
-      .error(function (data, status, headers) {
+      .error(function (data, status, headers, jwr) {
         alert('Houston, we got a problem!');
       });
 
