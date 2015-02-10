@@ -73,7 +73,7 @@
 
         /*@ngInject*/
         this.$get = function($q, $injector, $rootScope, $log) {
-            var socket = (io.sails || io).connect(provider.url, provider.config);
+            var socket = (io.sails && io.sails.connect || io.connect)(provider.url, provider.config);
 
             // TODO: separate out interceptors into its own file (and provider?).
             // build interceptor chain
