@@ -1,28 +1,25 @@
-describe('Agnular Sails', function() {
+describe('Agnular Sails service', function() {
 
     var $scope,
-        $compile,
-        $timeout,
-        $sails,
-        mockIoSocket,
-        spy,
-        methods = ['get', 'post', 'put', 'delete'],
-        response = {
-            success: {
-                body: 'Success!',
-                statusCode: 200
-            },
-            error: {
-                body: 'Error!',
-                statusCode: 500
-            }
-        };
+    $sails,
+    mockIoSocket,
+    spy,
+    methods = ['get', 'post', 'put', 'delete'],
+    response = {
+        success: {
+            body: 'Success!',
+            statusCode: 200
+        },
+        error: {
+            body: 'Error!',
+            statusCode: 500
+        }
+    };
 
     beforeEach(module('ngSails'));
 
-    beforeEach(inject(function(_$rootScope_, _$compile_, _$sails_) {
+    beforeEach(inject(function(_$rootScope_, _$sails_) {
         $scope = _$rootScope_;
-        $compile = _$compile_;
         $sails = _$sails_;
         mockIoSocket = $sails._raw;
         spy = sinon.spy();
@@ -107,7 +104,7 @@ describe('Agnular Sails', function() {
                 var errorSpy;
 
                 beforeEach(function() {
-                    mockIoSocket.on([method], function(ctx, cb){
+                    mockIoSocket.on(method, function(ctx, cb){
                         cb(response[ctx.url]);
                     });
                     errorSpy = sinon.spy();
@@ -218,4 +215,5 @@ describe('Agnular Sails', function() {
         });
 
     });
+
 });

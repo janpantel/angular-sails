@@ -24,6 +24,10 @@
         return angular.isString(value) ? value.trim() : value;
     }
 
+    function isPromiseLike (obj){
+        return obj && angular.isFunction(obj.then);
+    }
+
     // copied from angular
     function headersGetter(headers) {
         var headersObj = angular.isObject(headers) ? headers : undefined;
@@ -45,7 +49,7 @@
 
         this.httpVerbs = ['get', 'post', 'put', 'delete'];
 
-        this.eventNames = ['on', 'once'];
+        this.eventNames = ['on', 'off', 'once'];
 
         this.url = undefined;
 
@@ -65,14 +69,14 @@
                 return {
                     request: function(config) {},
                     response: function(response) {},
-                    requestError: function(config) {},
-                    responseError: function(response) {}
+                    requestError: function(rejection) {},
+                    responseError: function(rejection) {}
                 };
             }*/
         ];
 
         /*@ngInject*/
-        this.$get = function($q, $injector, $rootScope, $log) {
+        this.$get = function($q, $injector, $rootScope, $log, $timeout) {
             var socket = (io.sails && io.sails.connect || io.connect)(provider.url, provider.config);
 
             // TODO: separate out interceptors into its own file (and provider?).
@@ -85,20 +89,30 @@
                 );
             });
 
-
-
             // Send the request using the socket
             function serverRequest(config) {
                 var defer = $q.defer();
-                if (provider.debug) $log.info('$sails ' + config.method.toUpperCase() + ' ' + config.url, config.data || '');
+                if (provider.debug) $log.info('$sails ' + config.method + ' ' + config.url, config.data || '');
 
-                socket['legacy_' + config.method](config.url, config.data, function serverResponse(result, jwr) {
+                if (config.timeout > 0) {
+                    $timeout(timeoutRequest, config.timeout);
+                } else if (isPromiseLike(config.timeout)) {
+                    config.timeout.then(timeoutRequest);
+                }
+
+                socket['legacy_' + config.method.toLowerCase()](config.url, config.data, serverResponse);
+
+                function timeoutRequest(){
+                    serverResponse(null);
+                }
+
+                function serverResponse(result, jwr) {
 
                     if (!jwr) {
                         jwr = {
                             body: result,
                             headers: result.headers || {},
-                            statusCode: result.statusCode || result.status,
+                            statusCode: result.statusCode || result.status || 0,
                             error: (function() {
                                 if (this.statusCode < 200 || this.statusCode >= 400) {
                                     return this.body || this.statusCode;
@@ -111,7 +125,7 @@
                     jwr.status = jwr.statusCode; // $http compat
                     jwr.socket = socket;
                     jwr.url = config.url;
-                    jwr.method = config.method.toUpperCase();
+                    jwr.method = config.method;
                     jwr.config = config.config;
                     if (jwr.error) {
                         if (provider.debug) $log.warn('$sails response ' + jwr.statusCode + ' ' + config.url, jwr);
@@ -120,23 +134,26 @@
                         if (provider.debug) $log.info('$sails response ' + config.url, jwr);
                         defer.resolve(jwr);
                     }
-                });
+                }
+
                 return defer.promise;
             }
 
-            // Wrap a socket.io method within the promis chain
             function promisify(methodName) {
                 socket['legacy_' + methodName] = socket[methodName];
 
                 socket[methodName] = function(url, data, config) {
 
                     var chain = [serverRequest, undefined];
+
+                    //TODO: more compatible with $http methods and config
+
                     var promise = $q.when({
                         url: provider.urlPrefix + url,
                         data: data,
                         socket: socket,
                         config: config || {},
-                        method: methodName
+                        method: methodName.toUpperCase()
                     });
 
                     // apply interceptors
@@ -174,19 +191,18 @@
                 };
             }
 
-
-            // Wrap events to ensure a $digest cycle
             function wrapEvent(eventName) {
-                socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
-                socket[eventName] = function(event, cb) {
-                    if (cb !== null && angular.isFunction(cb)) {
-                        socket['legacy_' + eventName](event, function(result) {
-                            $rootScope.$evalAsync(cb.bind(socket, result));
-                        });
-                    }
-                };
+                if(socket[eventName] || socket._raw[eventName]){
+                    socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
+                    socket[eventName] = function(event, cb) {
+                        if (cb !== null && angular.isFunction(cb)) {
+                            socket['legacy_' + eventName](event, function(result) {
+                                $rootScope.$evalAsync(cb.bind(socket, result));
+                            });
+                        }
+                    };
+                }
             }
-
 
             angular.forEach(provider.httpVerbs, promisify);
             angular.forEach(provider.eventNames, wrapEvent);
