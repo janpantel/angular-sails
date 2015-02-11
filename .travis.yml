@@ -10,4 +10,4 @@ before_script:
 
 script:
   - gulp build-js
-  - gulp test
+  - gulp test-build
