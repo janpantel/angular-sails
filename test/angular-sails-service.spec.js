@@ -25,6 +25,87 @@ describe('Agnular Sails service', function() {
         spy = sinon.spy();
     }));
 
+    describe('connection', function() {
+
+        it('should be able to connect and disconnect', function () {
+
+            expect($sails.isConnected()).to.be.true();
+
+            $sails.disconnect();
+
+            expect($sails.isConnected()).to.be.false();
+
+            $sails.connect();
+
+            expect($sails.isConnected()).to.be.true();
+
+            $sails.disconnect();
+
+            expect($sails.isConnected()).to.be.false();
+
+            $sails.connect();
+
+            expect($sails.isConnected()).to.be.true();
+        });
+
+
+        it('should queue up requests', function () {
+            var getSpy = sinon.spy(),
+            postSpy = sinon.spy(),
+            getCbSpy = sinon.spy(),
+            postCbSpy = sinon.spy();
+
+            $sails.disconnect();
+
+            mockIoSocket.on('get', function(ctx, cb){
+                getSpy();
+                cb(response[ctx.url]);
+            });
+            mockIoSocket.on('post', function(ctx, cb){
+                postSpy();
+                cb(response[ctx.url]);
+            });
+
+            $sails.get('success').then(getCbSpy);
+            $sails.post('success').then(postCbSpy);
+
+            $scope.$digest();
+
+            expect(getSpy).to.have.been.not.called;
+            expect(postSpy).to.have.been.not.called;
+            expect(getCbSpy).to.have.been.not.called;
+            expect(postCbSpy).to.have.been.not.called;
+
+            $sails.connect();
+
+            /* TODO: Someone determine how to test this
+            Because `$sails.connect()` automatically runs the queued calls on the new socket,
+            We cannot grab the other end of the new socket to watch for the calls and respond
+            to the calls....  This makes this really hard to test. In fact, from what I can
+            tell impossible to test.
+            */
+            // mockIoSocket = $sails._raw;
+            //
+            // mockIoSocket.on('get', function(ctx, cb){
+            //     getSpy();
+            //     cb(response[ctx.url]);
+            // });
+            // mockIoSocket.on('post', function(ctx, cb){
+            //     postSpy();
+            //     cb(response[ctx.url]);
+            // });
+            //
+            // $scope.$digest();
+            //
+            // expect(getSpy).to.have.been.calledOnce;
+            // expect(postSpy).to.have.been.calledOnce;
+            // expect(getCbSpy).to.have.been.calledOnce;
+            // expect(postCbSpy).to.have.been.calledOnce;
+        });
+
+    });
+
+
     describe('on', function() {
 
         it('should apply asynchronously', function () {

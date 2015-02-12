@@ -79,6 +79,21 @@
         this.$get = function($q, $injector, $rootScope, $log, $timeout) {
             var socket = (io.sails && io.sails.connect || io.connect)(provider.url, provider.config);
 
+            socket.connect = function(opts){
+                if(!socket.isConnected()){
+                    var _opts = opts||{};
+                    _opts = angular.extend({},provider.config,opts);
+
+                    // These are the options sails.io.js actually sets when making the connection.
+                    socket.useCORSRouteToGetCookie = _opts.useCORSRouteToGetCookie;
+                    socket.url = _opts.url || provider.url;
+                    socket.multiplex = _opts.multiplex;
+
+                    socket._connect();
+                }
+                return socket;
+            }
+
             // TODO: separate out interceptors into its own file (and provider?).
             // build interceptor chain
             var reversedInterceptors = [];
