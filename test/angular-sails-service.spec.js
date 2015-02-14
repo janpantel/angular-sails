@@ -1,3 +1,5 @@
+'use strict';
+
 describe('Agnular Sails service', function() {
 
     var $scope,

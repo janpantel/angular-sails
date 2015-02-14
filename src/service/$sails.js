@@ -1,21 +1,17 @@
 'use strict';
 
-/* global angular: true,
-  io: true,
-  isPromiseLike: true,
+/* global isPromiseLike: true,
   headersGetter: true
 */
+angular.module('ngSails.$sails', ['ngSails.$sailsIo', 'ngSails.$sailsInterceptor'])
+  .provider('$sails', $sails);
 
-import JWR from 'JWR';
-
-io.sails.autoConnect = false;
-
-function $sails() {
+function $sails($sailsInterceptorProvider, $sailsIoProvider) {
   var provider = this;
 
-  provider.httpVerbs = ['get', 'post', 'put', 'delete'];
+  provider.httpVerbs = $sailsIoProvider.httpVerbs = ['get', 'post', 'put', 'delete'];
 
-  provider.eventNames = ['on', 'off', 'once'];
+  provider.eventNames = $sailsIoProvider.eventNames = ['on', 'off', 'once'];
 
   provider.url = undefined;
 
@@ -28,7 +24,7 @@ function $sails() {
 
   provider.debug = false;
 
-  var interceptorFactories = this.interceptors = [
+  provider.interceptors = $sailsInterceptorProvider.interceptors = [
     /*function($injectables) {
         return {
             request: function(config) {},
@@ -40,8 +36,10 @@ function $sails() {
   ];
 
   /*@ngInject*/
-  this.$get = function($q, $injector, $rootScope, $log, $timeout) {
+  this.$get = function($q, $log, $timeout, $sailsIo, $sailsInterceptor) {
+    var io;
     var socket = (io.sails && io.sails.connect || io.connect)(provider.url, provider.config);
+    var $sails = {};
 
     socket.connect = function(opts) {
       if (!(socket.isConnected && socket.isConnected() || !!socket.connected)) {
@@ -58,16 +56,6 @@ function $sails() {
       return socket;
     };
 
-    // TODO: separate out interceptors into its own file (and provider?).
-    // build interceptor chain
-    var reversedInterceptors = [];
-    angular.forEach(interceptorFactories, function(interceptorFactory) {
-      reversedInterceptors.unshift(
-        angular.isString(interceptorFactory) ?
-        $injector.get(interceptorFactory) : $injector.invoke(interceptorFactory)
-      );
-    });
-
     // Send the request using the socket
     function serverRequest(config) {
       var defer = $q.defer();
@@ -79,7 +67,7 @@ function $sails() {
         config.timeout.then(timeoutRequest);
       }
 
-      socket['legacy_' + config.method.toLowerCase()](config.url, config.data, serverResponse);
+      socket['legacy_' + config.method.toLowerCase()](config, serverResponse);
 
       function timeoutRequest() {
         serverResponse(null);
@@ -123,68 +111,20 @@ function $sails() {
 
       socket[methodName] = function(url, data, config) {
 
-        var chain = [serverRequest, undefined];
-
         //TODO: more compatible with $http methods and config
 
-        var promise = $q.when({
+        var _data = {
           url: provider.urlPrefix + url,
           data: data,
           socket: socket,
           config: config || {},
           method: methodName.toUpperCase()
-        });
-
-        // apply interceptors
-        angular.forEach(reversedInterceptors, function(interceptor) {
-          if (interceptor.request || interceptor.requestError) {
-            chain.unshift(interceptor.request, interceptor.requestError);
-          }
-          if (interceptor.response || interceptor.responseError) {
-            chain.push(interceptor.response, interceptor.responseError);
-          }
-        });
-
-        while (chain.length) {
-          var thenFn = chain.shift();
-          var rejectFn = chain.shift();
-
-          promise = promise.then(thenFn, rejectFn);
-        }
-
-        // be $http compatible
-        promise.success = function(fn) {
-          promise.then(function(jwr) {
-            fn(jwr.body, jwr.statusCode, headersGetter(jwr.headers), jwr);
-          });
-          return promise;
-        };
-        promise.error = function(fn) {
-          promise.then(null, function(jwr) {
-            fn(jwr.body, jwr.statusCode, headersGetter(jwr.headers), jwr);
-          });
-          return promise;
         };
 
-        return promise;
+        return $sailsInterceptor(serverRequest, _data);
+
       };
     }
-
-    function wrapEvent(eventName) {
-      if (socket[eventName] || socket._raw[eventName]) {
-        socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
-        socket[eventName] = function(event, cb) {
-          if (cb !== null && angular.isFunction(cb)) {
-            socket['legacy_' + eventName](event, function(result) {
-              $rootScope.$evalAsync(cb.bind(socket, result));
-            });
-          }
-        };
-      }
-    }
-
-    angular.forEach(provider.httpVerbs, promisify);
-    angular.forEach(provider.eventNames, wrapEvent);
 
     /**
      * Update a model on sails pushes
@@ -241,5 +181,3 @@ function $sails() {
     return socket;
   };
 }
-
-angular.module('ngSails').provider('$sails', $sails);

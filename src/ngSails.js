@@ -1,2 +1,3 @@
-/*global angular */
-angular.module('ngSails', ['ng']);
+'use strict';
+
+angular.module('ngSails', ['ng','ngSail.$sails']);

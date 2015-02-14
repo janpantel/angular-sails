@@ -1,10 +1,13 @@
+'use strict';
+
 describe('Agnular Sails provider', function() {
 
     var spy,
     requestSpy,
     responseSpy,
     requestErrorSpy,
-    responseErrorSpy;
+    responseErrorSpy,
+    socketRequestSpy,
     methods = ['get', 'post', 'put', 'delete'],
     response = {
         success: {
@@ -168,7 +171,7 @@ describe('Agnular Sails provider', function() {
                             request: function(config){
                                 expect(config.url).to.equal('success');
                                 expect(config.method).to.equal('POST');
-                                expect(config.data).to.deep.equal({value: true})
+                                expect(config.data).to.deep.equal({value: true});
                                 spy();
                                 return config;
                             }
@@ -269,7 +272,7 @@ describe('Agnular Sails provider', function() {
                         expect(res.method).to.equal('GET');
                         expect(res.url).to.equal('successOuterInner');
                         expect(res.data).to.equal('{{Success!} inner} outer');
-                        spy()
+                        spy();
                     });
                     $rootScope.$digest();
 

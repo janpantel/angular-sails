@@ -1,32 +1,34 @@
 'use strict';
 
-var gulp = require('gulp'),
-    concat = require('gulp-concat'),
-    uglify = require('gulp-uglify'),
-    header = require('gulp-header'),
-    footer = require('gulp-footer'),
-    ngAnnotate = require('gulp-ng-annotate'),
-    gulpKarma = require('gulp-karma'),
-    pkg = require('./package.json'),
-    files = require('./files');
+var gulp = require('gulp');
+var to5ify = require("6to5ify");
+var browserify = require('browserify');
+var source = require('vinyl-source-stream');
+var minifyify = require('minifyify');
+var ngAnnotate = require('browserify-ngannotate');
+var debowerify = require('debowerify');
+var glob = require('glob');
+var _ = require('lodash');
+var gulpKarma = require('gulp-karma');
+var pkg = require('./package.json');
+var files = require('./files');
 
 var karmaTestConfig = gulpKarma({configFile: 'karma.conf.js', action: 'run'});
 
 
-gulp.task('build-js', function () {
-    return gulp.src(files.mergeFilesFor('src'))
-        .pipe(ngAnnotate())
-        .pipe(concat(pkg.name+'.js'))
-        .pipe(header('(function (angular, io) {\n\'use strict\''))
-        .pipe(footer('}(angular, io));'))
-        .pipe(gulp.dest('./build/'))
-        .pipe(concat(pkg.name+'.min.js'))
-        .pipe(uglify())
-        .pipe(gulp.dest('./build/'));
-});
+gulp.task('js', function () {
 
-gulp.task('dist-js', ['build-js'], function () {
-    return gulp.src('./build/*.js')
+    var b = browserify({debug: true})
+        .transform(to5ify)
+        .require('')
+        .transform(ngAnnotate)
+        .plugin('minifyify', {output: './build/'+pkg.name+'.min.map.json', map: pkg.name+'.map.json'});
+    return b.bundle()
+    .pipe(source(pkg.name+'.min.js'))
+    .pipe(gulp.dest('./build/'));
+});
+gulp.task('dist', ['build-js'], function () {
+    return gulp.src('./build/*.*')
     .pipe(gulp.dest('./dist/'));
 });
 

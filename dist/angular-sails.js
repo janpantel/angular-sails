@@ -1,5 +1,5 @@
 (function (angular, io) {
-'use strict'/*global angular */
+'use strict';/*global angular */
 angular.module('ngSails', ['ng']);
 
 /*jslint sloppy:true*/
