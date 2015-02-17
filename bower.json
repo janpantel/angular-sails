@@ -18,8 +18,7 @@
   "license": "MIT",
   "homepage": "https://github.com/kyjan/angular-sails",
   "dependencies": {
-    "angular": ">=1.2.*",
-    "sails.io.js": "*"
+    "angular": ">=1.2.*"
   },
   "devDependencies":{
     "angular-mocks": ">=1.2.*"

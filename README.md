@@ -32,10 +32,10 @@ app.controller("FooController", function ($scope, $sails) {
   (function () {
     // Using .success() and .error()
     $sails.get("/bars")
-      .success(function (data, status, headers, jwr) {
+      .success(function (data, status, headers, config) {
         $scope.bars = data;
       })
-      .error(function (data, status, headers, jwr) {
+      .error(function (data, status, headers, config) {
         alert('Houston, we got a problem!');
       });
 

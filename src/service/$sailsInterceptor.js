@@ -1,6 +1,8 @@
 'use strict';
 
-/*global headersGetter: true */
+/* global isPromiseLike: true,
+  headersGetter: true
+*/
 
 angular.module('ngSails.$sailsInterceptor', [])
   .provider('$sailsInterceptor', $sailsInterceptor);
@@ -18,8 +20,15 @@ function $sailsInterceptor() {
     });
 
     var intercept = function(sendRequest, config) {
+      var _sendRequest = sendRequest;
 
-      var chain = [sendRequest, undefined];
+      if (isPromiseLike(sendRequest)) {
+        _sendRequest = function() {
+          return sendRequest;
+        };
+      }
+
+      var chain = [transformRequest, undefined, _sendRequest, undefined, transformResponse];
       var promise = $q.when(config);
 
       angular.forEach(reversedInterceptors, function(interceptor) {
@@ -38,21 +47,30 @@ function $sailsInterceptor() {
         promise = promise.then(thenFn, rejectFn);
       }
 
-      promise.success = function(fn) {
-        promise.then(function(jwr) {
-          fn(jwr.body, jwr.statusCode, headersGetter(jwr.headers), jwr);
-        });
-        return promise;
-      };
-      promise.error = function(fn) {
-        promise.then(null, function(jwr) {
-          fn(jwr.body, jwr.statusCode, headersGetter(jwr.headers), jwr);
-        });
-        return promise;
-      };
-
       return promise;
     };
+
+    function transformRequest(config) {
+      transformData(config.data, headersGetter(config.headers), config.transformRequest);
+    }
+
+    function transformResponse(response) {
+      var resp = angular.extend({}, response, {
+        data: transformData(response.data, response.headers, response.config.transformResponse)
+      });
+      return (200 <= response.status && response.status < 300) ? resp : $q.reject(resp);
+    }
+
+    function transformData(data, headers, fns) {
+      if (angular.isFunction(fns))
+        return fns(data, headers);
+
+      angular.forEach(fns, function(fn) {
+        data = fn(data, headers);
+      });
+
+      return data;
+    }
 
     return intercept;
   };

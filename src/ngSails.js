@@ -1,3 +1,3 @@
 'use strict';
 
-angular.module('ngSails', ['ng','ngSail.$sails']);
+angular.module('ngSails', ['ngSail.$sails']);

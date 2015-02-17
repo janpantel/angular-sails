@@ -1,28 +1,36 @@
 'use strict';
 
-/* global isPromiseLike: true,
-  headersGetter: true
+/* jshint newcap: false */
+/* global headersGetter: true,
+  arrIndexOf: true,
+  isFile: true,
+  isBlob: true
 */
+
 angular.module('ngSails.$sails', ['ngSails.$sailsIo', 'ngSails.$sailsInterceptor'])
   .provider('$sails', $sails);
 
 function $sails($sailsInterceptorProvider, $sailsIoProvider) {
   var provider = this;
+  var httpVerbsWithData = ['post', 'put', 'patch'];
 
-  provider.httpVerbs = $sailsIoProvider.httpVerbs = ['get', 'post', 'put', 'delete'];
-
+  provider.httpVerbs = $sailsIoProvider.httpVerbs = ['get', 'post', 'put', 'patch', 'delete', 'head'];
   provider.eventNames = $sailsIoProvider.eventNames = ['on', 'off', 'once'];
-
-  provider.url = undefined;
-
-  provider.urlPrefix = '';
-
   provider.config = {
     transports: ['websocket', 'polling'],
     useCORSRouteToGetCookie: false
   };
+  provider.debug = $sailsInterceptorProvider.debug = $sailsIoProvider.debug = false;
 
-  provider.debug = false;
+  provider.debugger = function(val) {
+    provider.debug = $sailsInterceptorProvider.debug = $sailsIoProvider.debug = val;
+  };
+
+  provider.defaults = {
+      transformResponse: [],
+      transformRequest: [],
+      headers: {} // TODO: default headers
+  };
 
   provider.interceptors = $sailsInterceptorProvider.interceptors = [
     /*function($injectables) {
@@ -35,106 +43,78 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
     }*/
   ];
 
-  /*@ngInject*/
   this.$get = function($q, $log, $timeout, $sailsIo, $sailsInterceptor) {
-    var io;
-    var socket = (io.sails && io.sails.connect || io.connect)(provider.url, provider.config);
-    var $sails = {};
+    var socket = new $sailsIo(provider.url, provider.config);
 
-    socket.connect = function(opts) {
-      if (!(socket.isConnected && socket.isConnected() || !!socket.connected)) {
-        var _opts = opts || {};
-        _opts = angular.extend({}, provider.config, opts);
-
-        // These are the options sails.io.js actually sets when making the connection.
-        socket.useCORSRouteToGetCookie = _opts.useCORSRouteToGetCookie;
-        socket.url = _opts.url || provider.url;
-        socket.multiplex = _opts.multiplex;
-
-        socket._connect();
-      }
-      return socket;
-    };
-
-    // Send the request using the socket
-    function serverRequest(config) {
-      var defer = $q.defer();
-      if (provider.debug) $log.info('$sails ' + config.method + ' ' + config.url, config.data || '');
-
-      if (config.timeout > 0) {
-        $timeout(timeoutRequest, config.timeout);
-      } else if (isPromiseLike(config.timeout)) {
-        config.timeout.then(timeoutRequest);
-      }
-
-      socket['legacy_' + config.method.toLowerCase()](config, serverResponse);
-
-      function timeoutRequest() {
-        serverResponse(null);
-      }
-
-      function serverResponse(result, jwr) {
-
-        if (!jwr) {
-          jwr = {
-            body: result,
-            headers: result.headers || {},
-            statusCode: result.statusCode || result.status || 0,
-            error: (function() {
-              if (this.statusCode < 200 || this.statusCode >= 400) {
-                return this.body || this.statusCode;
-              }
-            })()
-          };
-        }
-
-        jwr.data = jwr.body; // $http compat
-        jwr.status = jwr.statusCode; // $http compat
-        jwr.socket = socket;
-        jwr.url = config.url;
-        jwr.method = config.method;
-        jwr.config = config.config;
-        if (jwr.error) {
-          if (provider.debug) $log.warn('$sails response ' + jwr.statusCode + ' ' + config.url, jwr);
-          defer.reject(jwr);
-        } else {
-          if (provider.debug) $log.info('$sails response ' + config.url, jwr);
-          defer.resolve(jwr);
-        }
-      }
-
-      return defer.promise;
+    function $sails(config) {
+      return $sails[config.method](config.url, config);
     }
 
-    function promisify(methodName) {
-      socket['legacy_' + methodName] = socket[methodName];
+    $sails._socket = socket;
 
-      socket[methodName] = function(url, data, config) {
+    function exposeVerbEndpoints(methodName) {
 
-        //TODO: more compatible with $http methods and config
-
-        var _data = {
-          url: provider.urlPrefix + url,
-          data: data,
-          socket: socket,
-          config: config || {},
-          method: methodName.toUpperCase()
+      $sails[methodName] = function(url, data, requestConfig) {
+        var config = {
+          method: 'get',
+          transformRequest: provider.defaults.transformRequest,
+          transformResponse: provider.defaults.transformResponse,
+          headers: {}// TODO: default headers
         };
 
-        return $sailsInterceptor(serverRequest, _data);
+        // more compatible with $http method arguments
+        if (arrIndexOf(httpVerbsWithData, methodName) > -1) {
+            requestConfig = data || requestConfig;
+          delete requestConfig.data;
+        } else {
+            requestConfig.data = data;
+        }
+
+        angular.extend(config, requestConfig);
+        config.url = (provider.urlPrefix || '') + (url || config.url);
+        config.method = methodName.toUpperCase();
+
+        var promise = $sailsInterceptor(socket[methodName], config);
+
+        promise.success = function(fn) {
+          promise.then(function(res) {
+            fn(res.data, res.status, headersGetter(res.headers), res.config);
+          });
+          return promise;
+        };
+
+        promise.error = function(fn) {
+          promise.then(null, function(res) {
+            fn(res.data, res.status, headersGetter(res.headers), res.config);
+          });
+          return promise;
+        };
+
+        return promise;
 
       };
     }
+
+    function exposeEventsEndpoitns(eventName) {
+      $sails[eventName] = socket[eventName];
+    }
+
+    angular.forEach(provider.httpVerbs, exposeVerbEndpoints, this);
+    angular.forEach(provider.eventNames, exposeEventsEndpoitns, this);
 
     /**
      * Update a model on sails pushes
      * @param {String} name       Sails model name
      * @param {Array} models      Array with model objects
      */
-    socket.$modelUpdater = function(name, models) {
+    $sails.$modelUpdater = function(name, models) {
 
       socket.on(name, function(message) {
         var i;
+
+        if (provider.debug) {
+          $log.info('$sails ' + name + ' model ' + message.verb + ' id: ' + message.id, message.data);
+        }
 
         switch (message.verb) {
 
@@ -178,6 +158,8 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
       });
     };
 
-    return socket;
+    $sails.defaults = this.defaults;
+
+    return $sails;
   };
 }

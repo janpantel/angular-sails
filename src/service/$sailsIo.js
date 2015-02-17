@@ -1,6 +1,10 @@
 'use strict';
 
-angular.module('ngSails.$sailsIo', [])
+/* global statusText: true,
+  buildUrl: true
+*/
+
+angular.module('ngSails.$sailsIo', ['ngSails.sailsSdk'])
   .provider('$sailsIo', $sailsIo);
 
 function $sailsIo() {
@@ -8,7 +12,7 @@ function $sailsIo() {
   provider.httpVerbs = ['get', 'post', 'put', 'delete'];
   provider.eventNames = ['on', 'off', 'once'];
 
-  this.$get = function($rootScope, $q, socketIo) {
+  this.$get = function($rootScope, $q, $log, socketIo, sailsSdk) {
     var io = socketIo;
 
     function SailsIo(url, config) {
@@ -28,33 +32,68 @@ function $sailsIo() {
     }
 
     SailsIo.prototype.connect = function(url, config) {
-      if (!this._socket || !this._socket.connected) {
-        this._socket = io.connect(url, config);
-        this.connectDefer.resolve();
+      var self = this;
+      if (angular.isObject(url)) {
+        config = url;
+      } else {
+        config = config || {};
+        config.url = url || config.url;
+      }
+
+      if(!angular.isString(config.query)){
+          config.query = sailsSdk.versionString();
+      }else{
+          config.query += '&'+sailsSdk.versionString();
+      }
+
+      self.config = config;
+      if (!self._socket || !self._socket.connected) {
+        self._socket = io(config.url, config);
+        self.connectDefer.resolve();
+      }
+      if (provider.debug) {
+        self.on('connect', $log.info.bind(self, '$sails connected.'));
+        self.on('disconnect', $log.info.bind(self, '$sails disconnected.'));
+        self.on('reconnecting', function(attemps) {
+          $log.warn.bind(self, '$sails is attemping to reconnect. (#' + attemps + ')');
+        });
+        self.on('reconnect', function(transport, attemps) {
+          $log.info.bind(self, '$sails successfully reconnected after ' + attemps + ' attemps.');
+        });
+        self.on('error', function(err) {
+          $log.error('$sails could not connect:', err);
+        });
       }
     };
 
     SailsIo.prototype.disconnect = function() {
-      this._socket.disconnect();
-      this.connectDefer = $q.defer();
+      var self = this;
+      if (self._socket) {
+        self._socket.disconnect();
+      }
+      self.connectDefer.reject('disconnect');
+      self.connectDefer = $q.defer();
     };
 
     SailsIo.prototype.isConnected = function() {
+      if (!this._socket) {
+        return false;
+      }
       return this._socket.connected;
     };
 
     angular.forEach(provider.httpVerbs, function(method) {
-      SailsIo.prototype[method] = this._req.bind(this, method);
+      SailsIo.prototype[method] = this._req.bind(this);
     }, this);
 
-    SailsIo.prototype._req = function(method, req) {
+    SailsIo.prototype._req = function(req) {
       var self = this;
       var res = $q.defer();
 
-      req.url = req.url.replace(/^(.+)\/*\s*$/, self.config.urlPrefix + '$1');
+      req.url = buildUrl(req.url.replace(/^(.+)\/*\s*$/, '$1'), req.params);
       req.headers = req.headers || {};
       req.data = req.data || {};
-      req.method = method.toUpperCase();
+      req.method = req.method.toUpperCase();
 
       if (typeof req.url !== 'string') {
         throw new Error('Invalid or missing URL!');
@@ -71,38 +110,38 @@ function $sailsIo() {
       var sailsEndpoint = req.method.toLowerCase();
 
       self.connectDefer.then(function sendRequest() {
-        self._socket.emit(sailsEndpoint, req, function requestResponse(response) {
+        if (provider.debug) {
+          $log.info('$sails ' + req.method + ' ' + req.url, req.data || '');
+        }
 
+        self._socket.emit(sailsEndpoint, req, function requestResponse(response) {
+            if (provider.debug) {
+              $log.info('$sails' + req.method + ' ' + req.url + ' response received', response);
+            }
           var serverResponse = {
-            data: response.body || {},
+            data: response.body || response || {},
+            status: response.statusCode || response.status || response.Status || 200,
             headers: response.headers || {},
-            status: response.statusCode || 200,
-            error: (function() {
-              if (this.status < 200 || this.status >= 400) {
-                return this.data || this.status;
-              }
-            })(),
-            socket: self._socket,
-            url: req.url,
-            method: sailsEndpoint.toUpperCase(),
-            config: req
+            config: req,
+            statusText: statusText[this.status]
           };
 
-          if (serverResponse.error) {
+          if (200 <= serverResponse.status && serverResponse.status < 300) {
             res.reject(serverResponse);
           } else {
             res.resolve(serverResponse);
           }
         });
       }, function voidRequest() {
+        if (provider.debug) {
+          $log.warn('$sails' + req.method + ' ' + req.url + ' request terminated', req);
+        }
         res.reject({
           data: null,
-          headers: {},
           status: 0,
-          error: 0,
-          socket: self._socket,
-          method: sailsEndpoint.toUpperCase(),
-          config: req
+          headers: {},
+          config: req,
+          statusText: null
         });
       });
     };
