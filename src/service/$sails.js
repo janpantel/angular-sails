@@ -17,8 +17,7 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
   provider.httpVerbs = $sailsIoProvider.httpVerbs = ['get', 'post', 'put', 'patch', 'delete', 'head'];
   provider.eventNames = $sailsIoProvider.eventNames = ['on', 'off', 'once'];
   provider.config = {
-    transports: ['websocket', 'polling'],
-    useCORSRouteToGetCookie: false
+    transports: ['websocket', 'polling']
   };
   provider.debug = $sailsInterceptorProvider.debug = $sailsIoProvider.debug = false;
 
@@ -44,7 +43,8 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
   ];
 
   this.$get = function($q, $log, $timeout, $sailsIo, $sailsInterceptor) {
-    var socket = new $sailsIo(provider.url, provider.config);
+    var socket = new $sailsIo(provider.socket || provider.url, provider.config);
+    var socketFunctions = ['connect','disconnect','isConnected'];
 
     function $sails(config) {
       return $sails[config.method](config.url, config);
@@ -52,29 +52,35 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
 
     $sails._socket = socket;
 
+    function exposeSocketFunction(fnName){
+      $sails[fnName] = socket[fnName].bind(socket);
+    }
+
     function exposeVerbEndpoints(methodName) {
 
       $sails[methodName] = function(url, data, requestConfig) {
         var config = {
-          method: 'get',
+          method: methodName,
           transformRequest: provider.defaults.transformRequest,
           transformResponse: provider.defaults.transformResponse,
           headers: {}// TODO: default headers
         };
 
+        requestConfig = requestConfig || {};
+
         // more compatible with $http method arguments
-        if (arrIndexOf(httpVerbsWithData, methodName) > -1) {
-            requestConfig = data || requestConfig;
+        if (arrIndexOf(httpVerbsWithData, methodName) === -1) {
+          requestConfig = data || requestConfig;
           delete requestConfig.data;
         } else {
-            requestConfig.data = data;
+          requestConfig.data = data;
         }
 
         angular.extend(config, requestConfig);
         config.url = (provider.urlPrefix || '') + (url || config.url);
-        config.method = methodName.toUpperCase();
+        config.method = (config.method || methodName).toUpperCase();
 
-        var promise = $sailsInterceptor(socket[methodName], config);
+        var promise = $sailsInterceptor(socket[methodName].bind(socket), config);
 
         promise.success = function(fn) {
           promise.then(function(res) {
@@ -96,11 +102,12 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
     }
 
     function exposeEventsEndpoitns(eventName) {
-      $sails[eventName] = socket[eventName];
+      $sails[eventName] = socket[eventName].bind(socket);
     }
 
     angular.forEach(provider.httpVerbs, exposeVerbEndpoints, this);
     angular.forEach(provider.eventNames, exposeEventsEndpoitns, this);
+    angular.forEach(socketFunctions, exposeSocketFunction, this);
 
     /**
      * Update a model on sails pushes

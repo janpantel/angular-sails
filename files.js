@@ -9,8 +9,7 @@ var pkgFiles = {
   karma: [
     'bower_components/angular/angular.js',
     'bower_components/angular-mocks/angular-mocks.js',
-    'mock/socket-io.js',
-    'bower_components/sails.io.js/sails.io.js'
+    'mock/socket-io.js'
   ],
   'karma-build': [
     '@karma',
@@ -31,7 +30,7 @@ var pkgFiles = {
     'test/**/*.spec.js'
   ],
   src: [
-    'src/**/*.js',
+    'src/**/*.js'
   ]
 };
 

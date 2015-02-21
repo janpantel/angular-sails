@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('ngSails.socketIo')
+angular.module('ngSails.socketIo', [])
   .factory('socketIo', socketIo);
 
 function socketIo($window) {

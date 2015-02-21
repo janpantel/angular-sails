@@ -15,7 +15,7 @@ function $sailsInterceptor() {
 
     var reversedInterceptors = [];
 
-    angular.forEach(provider.interceptorFactories, function(interceptorFactory) {
+    angular.forEach(provider.interceptors, function(interceptorFactory) {
       reversedInterceptors.unshift(angular.isString(interceptorFactory) ? $injector.get(interceptorFactory) : $injector.invoke(interceptorFactory));
     });
 
@@ -28,7 +28,7 @@ function $sailsInterceptor() {
         };
       }
 
-      var chain = [transformRequest, undefined, _sendRequest, undefined, transformResponse];
+      var chain = [transformRequest, undefined, _sendRequest, undefined, transformResponse, transformResponse];
       var promise = $q.when(config);
 
       angular.forEach(reversedInterceptors, function(interceptor) {
@@ -51,19 +51,22 @@ function $sailsInterceptor() {
     };
 
     function transformRequest(config) {
-      transformData(config.data, headersGetter(config.headers), config.transformRequest);
+      return angular.extend({}, config, {
+        data: transformData(config.data, headersGetter(config.headers), config.transformRequest || [])
+      });
     }
 
     function transformResponse(response) {
       var resp = angular.extend({}, response, {
-        data: transformData(response.data, response.headers, response.config.transformResponse)
+        data: transformData(response.data, response.headers, response.config && response.config.transformResponse || [])
       });
       return (200 <= response.status && response.status < 300) ? resp : $q.reject(resp);
     }
 
     function transformData(data, headers, fns) {
-      if (angular.isFunction(fns))
+      if (angular.isFunction(fns)){
         return fns(data, headers);
+      }
 
       angular.forEach(fns, function(fn) {
         data = fn(data, headers);

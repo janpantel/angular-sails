@@ -12,7 +12,7 @@ Install it:
 ```shell
 bower install angular-sails
 ```
-You must also include [sails.io.js](https://github.com/balderdashy/sails.io.js) in order to use this.
+You must also include [sails.io-client](https://github.com/automattic/socket.io-client) in order to use this.
 
 Usage
 -----
