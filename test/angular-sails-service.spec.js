@@ -1,3 +1,5 @@
+'use strict';
+
 describe('Agnular Sails service', function() {
 
     var $scope,
@@ -21,7 +23,7 @@ describe('Agnular Sails service', function() {
     beforeEach(inject(function(_$rootScope_, _$sails_) {
         $scope = _$rootScope_;
         $sails = _$sails_;
-        mockIoSocket = $sails._raw;
+        mockIoSocket = $sails._socket._socket;
         spy = sinon.spy();
     }));
 
@@ -50,10 +52,10 @@ describe('Agnular Sails service', function() {
 
 
         it('should queue up requests', function () {
-            var getSpy = sinon.spy(),
-            postSpy = sinon.spy(),
-            getCbSpy = sinon.spy(),
-            postCbSpy = sinon.spy();
+            var getSpy = sinon.spy().named('getSpy'),
+            postSpy = sinon.spy().named('postSpy'),
+            getCbSpy = sinon.spy().named('getCbSpy'),
+            postCbSpy = sinon.spy().named('postCbSpy');
 
             $sails.disconnect();
 
@@ -78,29 +80,23 @@ describe('Agnular Sails service', function() {
 
             $sails.connect();
 
-            /* TODO: Someone determine how to test this
-            Because `$sails.connect()` automatically runs the queued calls on the new socket,
-            We cannot grab the other end of the new socket to watch for the calls and respond
-            to the calls....  This makes this really hard to test. In fact, from what I can
-            tell impossible to test.
-            */
-            // mockIoSocket = $sails._raw;
-            //
-            // mockIoSocket.on('get', function(ctx, cb){
-            //     getSpy();
-            //     cb(response[ctx.url]);
-            // });
-            // mockIoSocket.on('post', function(ctx, cb){
-            //     postSpy();
-            //     cb(response[ctx.url]);
-            // });
-            //
-            // $scope.$digest();
-            //
-            // expect(getSpy).to.have.been.calledOnce;
-            // expect(postSpy).to.have.been.calledOnce;
-            // expect(getCbSpy).to.have.been.calledOnce;
-            // expect(postCbSpy).to.have.been.calledOnce;
+            mockIoSocket = $sails._socket._socket;
+
+            mockIoSocket.on('get', function(ctx, cb){
+                getSpy();
+                cb(response[ctx.url]);
+            });
+            mockIoSocket.on('post', function(ctx, cb){
+                postSpy();
+                cb(response[ctx.url]);
+            });
+
+            $scope.$digest();
+
+            expect(getSpy).to.have.been.calledOnce;
+            expect(postSpy).to.have.been.calledOnce;
+            expect(getCbSpy).to.have.been.calledOnce;
+            expect(postCbSpy).to.have.been.calledOnce;
         });
 
     });
@@ -188,7 +184,7 @@ describe('Agnular Sails service', function() {
                     mockIoSocket.on(method, function(ctx, cb){
                         cb(response[ctx.url]);
                     });
-                    errorSpy = sinon.spy();
+                    errorSpy = sinon.spy().named('errorSpy');
                 });
 
                 it('should resolve successes', function () {

@@ -1,0 +1,14 @@
+{
+    "extends": "../.jshintrc-base",
+    "browser": true,
+    "mocha": true,
+    "globals": {
+        /* SINON / expect */
+        "expect": false,
+        "sinon": false,
+
+        /* MOCKS */
+        "inject": false,
+        "module": false,
+    }
+}

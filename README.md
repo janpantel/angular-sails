@@ -3,7 +3,7 @@
 Angular Sails
 =============
 
-This small module allows you to use Sails.JS's awesome socket.io api with AngularJS.
+This module allows you to use Sails.JS's awesome socket.io api with AngularJS.
 
 Just add a dependency to your module and controllers and get it going!
 
@@ -12,10 +12,16 @@ Install it:
 ```shell
 bower install angular-sails
 ```
-You must also include [sails.io.js](https://github.com/balderdashy/sails.io.js) in order to use this.
+You must also include [sails.io-client](https://github.com/automattic/socket.io-client) in order to use this.
+
+
+Switching from angular's `$http`?
+---------------------------------
+Angular Sails is a drop-in replacement for Angular's `$http` service.  If you are currently using `$http` with sailsjs then switching to sockets is a snap, just replace `$http` with `$sails`!
 
 Usage
 -----
+
 A small example:
 
 ```javascript
@@ -32,10 +38,10 @@ app.controller("FooController", function ($scope, $sails) {
   (function () {
     // Using .success() and .error()
     $sails.get("/bars")
-      .success(function (data, status, headers, jwr) {
+      .success(function (data, status, headers, config) {
         $scope.bars = data;
       })
-      .error(function (data, status, headers, jwr) {
+      .error(function (data, status, headers, config) {
         alert('Houston, we got a problem!');
       });
 
@@ -61,7 +67,6 @@ API Reference
 --------------
 
 ### Sails.JS REST ###
-Angular Sails wraps the native sails.js REST functions. For further information check out [the sails docs](http://sailsjs.org/#!documentation/sockets) and [Mike's Screencast](http://www.youtube.com/watch?v=GK-tFvpIR7c)
-
-### Native socket functions ###
-The sails service is nothing more like the native socket.io object!
+Angular Sails mimics Angular's `$http` service to provide a drop-in socket replacement for http.
+For more information check out [angular's `$http` docs](https://docs.angularjs.org/api/ng/service/$http#usage)<br />
+<small>Note: Angular Sails does not have a `jsonp` method as jsonp is a specific implementation of HTTP</small>

@@ -1,10 +1,13 @@
+'use strict';
+
 describe('Agnular Sails provider', function() {
 
     var spy,
     requestSpy,
     responseSpy,
     requestErrorSpy,
-    responseErrorSpy;
+    responseErrorSpy,
+    socketRequestSpy,
     methods = ['get', 'post', 'put', 'delete'],
     response = {
         success: {
@@ -19,11 +22,11 @@ describe('Agnular Sails provider', function() {
 
     beforeEach(function(){
         spy = sinon.spy();
-        requestSpy = sinon.spy();
-        responseSpy = sinon.spy();
-        requestErrorSpy = sinon.spy();
-        responseErrorSpy = sinon.spy();
-        socketRequestSpy = sinon.spy();
+        requestSpy = sinon.spy().named('requestSpy');
+        responseSpy = sinon.spy().named('responseSpy');
+        requestErrorSpy = sinon.spy().named('requestErrorSpy');
+        responseErrorSpy = sinon.spy().named('responseErrorSpy');
+        socketRequestSpy = sinon.spy().named('socketRequestSpy');
     });
 
     describe('interceptors', function() {
@@ -37,6 +40,9 @@ describe('Agnular Sails provider', function() {
 
             beforeEach(module('ngSails',function(_$sailsProvider_){
                 $sailsProvider = _$sailsProvider_;
+
+                mockIoSocket = io();
+                $sailsProvider.socket = mockIoSocket;
 
                 $sailsProvider.interceptors.push(function($q){
                     return {
@@ -63,7 +69,6 @@ describe('Agnular Sails provider', function() {
             beforeEach(inject(function(_$rootScope_, _$sails_) {
                 $scope = _$rootScope_;
                 $sails = _$sails_;
-                mockIoSocket = $sails._raw;
 
                 mockIoSocket.on('get', function(ctx, cb){
                     socketRequestSpy();
@@ -112,14 +117,14 @@ describe('Agnular Sails provider', function() {
                     $sailsProvider.interceptors.push(function($q){
                         return {
                             request: function(config){
-                                return $q.reject('rejected');
+                                return $q.reject(config);
                             }
                         };
                     });
                 });
 
                 inject(function($rootScope, $sails) {
-                    $sails._raw.on('get', function(ctx, cb){
+                  $sails._socket._socket.on('get', function(ctx, cb){
                         socketRequestSpy();
                         cb(response[ctx.url]);
                     });
@@ -138,7 +143,7 @@ describe('Agnular Sails provider', function() {
                     $sailsProvider.interceptors.push(function($q){
                         return {
                             response: function(config){
-                                return $q.reject('rejected');
+                                return $q.reject(config);
                             }
                         };
                     });
@@ -146,7 +151,7 @@ describe('Agnular Sails provider', function() {
 
                 inject(function($rootScope, $sails) {
                     var errorSpy = sinon.spy();
-                    $sails._raw.on('get', function(ctx, cb){
+                    $sails._socket._socket.on('get', function(ctx, cb){
                         socketRequestSpy();
                         cb(response[ctx.url]);
                     });
@@ -168,7 +173,7 @@ describe('Agnular Sails provider', function() {
                             request: function(config){
                                 expect(config.url).to.equal('success');
                                 expect(config.method).to.equal('POST');
-                                expect(config.data).to.deep.equal({value: true})
+                                expect(config.data).to.deep.equal({value: true});
                                 spy();
                                 return config;
                             }
@@ -178,12 +183,12 @@ describe('Agnular Sails provider', function() {
 
                 inject(function($rootScope, $sails) {
                     var errorSpy = sinon.spy();
-                    $sails._raw.on('post', function(ctx, cb){
+                    $sails._socket._socket.on('post', function(ctx, cb){
                         socketRequestSpy();
                         cb(response[ctx.url]);
                     });
 
-                    $sails.post('success',{value: true});
+                    $sails.post('success', {value: true});
                     $rootScope.$digest();
 
                     expect(spy).to.have.been.calledOnce;
@@ -208,15 +213,15 @@ describe('Agnular Sails provider', function() {
 
                 inject(function($rootScope, $sails) {
                     var errorSpy = sinon.spy();
-                    $sails._raw.on('post', function(ctx, cb){
-                        expect(ctx.method).to.equal('post');
+                    $sails._socket._socket.on('post', function(ctx, cb){
+                        expect(ctx.method).to.equal('POST');
                         expect(ctx.url).to.equal('success');
                         expect(ctx.data).to.deep.equal({value: true});
                         socketRequestSpy();
                         cb(response[ctx.url]);
                     });
 
-                    $sails.get('error', {value: false});
+                    $sails.get('error');
                     $rootScope.$digest();
 
                     expect(socketRequestSpy).to.have.been.calledOnce;
@@ -261,15 +266,15 @@ describe('Agnular Sails provider', function() {
                 });
 
                 inject(function($rootScope, $sails) {
-                    $sails._raw.on('get', function(ctx, cb){
+                  $sails._socket._socket.on('get', function(ctx, cb){
                         cb(response.success);
                     });
 
                     $sails.get('success').then(function(res){
-                        expect(res.method).to.equal('GET');
-                        expect(res.url).to.equal('successOuterInner');
+                        expect(res.config.method).to.equal('GET');
+                        expect(res.config.url).to.equal('successOuterInner');
                         expect(res.data).to.equal('{{Success!} inner} outer');
-                        spy()
+                        spy();
                     });
                     $rootScope.$digest();
 
