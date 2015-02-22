@@ -9,5 +9,4 @@ before_script:
   - bower install -F
 
 script:
-  - gulp build-js
-  - gulp test-build
+  - gulp build
