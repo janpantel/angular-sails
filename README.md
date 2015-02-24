@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/janpantel/angular-sails.svg?branch=master)](https://travis-ci.org/janpantel/angular-sails)
+[![Build Status](https://travis-ci.org/janpantel/angular-sails.svg?branch=2.0)](https://travis-ci.org/janpantel/angular-sails)
 
 Angular Sails
 =============
