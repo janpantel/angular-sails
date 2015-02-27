@@ -1,7 +1,7 @@
 {
   "name": "angular-sails",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "An angular provider for using the sails socket.io api",
   "scripts": {
     "build": "gulp build-js",
