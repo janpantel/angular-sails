@@ -1,7 +1,9 @@
 /*global angular, io */
 (function(angular, io) {
     'use strict';
-    io.sails.autoConnect = false;
+    if(io.sails){
+      io.sails.autoConnect = false;
+    }
 
     // copied from angular
     function parseHeaders(headers) {
@@ -49,7 +51,7 @@
 
         this.httpVerbs = ['get', 'post', 'put', 'delete'];
 
-        this.eventNames = ['on', 'off', 'once'];
+        this.eventNames = ['on', 'off'];
 
         this.url = undefined;
 
@@ -207,7 +209,7 @@
             }
 
             function wrapEvent(eventName) {
-                if(socket[eventName] || socket._raw[eventName]){
+                if(socket[eventName] || socket._raw && socket._raw[eventName]){
                     socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
                     socket[eventName] = function(event, cb) {
                         if (cb !== null && angular.isFunction(cb)) {
@@ -218,6 +220,17 @@
                     };
                 }
             }
+
+            // sails.io.js doesn't have `once`, need to access it through `._raw`
+            socket.once = function(event, cb){
+              if (cb !== null && angular.isFunction(cb)) {
+                if(socket._raw){
+                  socket._raw.once(event, function(result) {
+                      $rootScope.$evalAsync(cb.bind(socket, result));
+                  });
+                }
+              }
+            };
 
             angular.forEach(provider.httpVerbs, promisify);
             angular.forEach(provider.eventNames, wrapEvent);

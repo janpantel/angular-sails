@@ -34,7 +34,7 @@ function createMockSocketObject() {
             (this._listeners[ev] = this._listeners[ev] || []).push(fn);
         },
         once: function(ev, fn) {
-            (this._raw._listeners[ev] = this._raw._listeners[ev] || []).push(fn);
+            (this._listeners[ev] = this._listeners[ev] || []).push(fn);
             fn._once = true;
         },
         emit: function(ev, data) {
