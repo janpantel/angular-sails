@@ -236,10 +236,11 @@ describe('Agnular Sails service', function() {
 
         var models;
         var modelResponse;
+        var removeUpdater;
 
         beforeEach(function() {
             models = [];
-            $sails.$modelUpdater('user', models);
+            removeUpdater = $sails.$modelUpdater('user', models);
             modelResponse = {
                 created:{
                     data: {
@@ -293,6 +294,28 @@ describe('Agnular Sails service', function() {
             mockIoSocket.emit('user', modelResponse.updated);
             $scope.$digest();
             expect(models[0].name).to.equal(modelResponse.updated.data.name);
+        });
+
+        describe('returned function', function(){
+            it('should remove the socket listener', function () {
+                removeUpdater();
+                $scope.$digest();
+                mockIoSocket.emit('user', modelResponse.created);
+                $scope.$digest();
+                expect(models).to.be.empty();
+            });
+
+            it('should remove only the socket listener it is called on', function () {
+                var tasks = [];
+                $sails.$modelUpdater('tasks', tasks);
+                removeUpdater();
+                $scope.$digest();
+                mockIoSocket.emit('user', modelResponse.created);
+                mockIoSocket.emit('tasks', modelResponse.created);
+                $scope.$digest();
+                expect(tasks).to.contain(modelResponse.created.data);
+                expect(models).to.be.empty();
+            });
         });
 
     });
