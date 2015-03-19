@@ -59,6 +59,16 @@ function createMockSocketObject() {
                 delete this._listeners[ev];
             }
         },
+        off: function(ev, fn) {
+            if (fn) {
+                var index = this._listeners[ev].indexOf(fn);
+                if (index > -1) {
+                    this._listeners[ev].splice(index, 1);
+                }
+            } else {
+                delete this._listeners[ev];
+            }
+        },
         removeAllListeners: function(ev) {
             if (ev) {
                 delete this._listeners[ev];

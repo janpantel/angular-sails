@@ -98,7 +98,7 @@ angular.module('ngSails', ['ng']);
                     socket._connect();
                 }
                 return socket;
-            }
+            };
 
             // TODO: separate out interceptors into its own file (and provider?).
             // build interceptor chain
@@ -247,49 +247,58 @@ angular.module('ngSails', ['ng']);
              */
             socket.$modelUpdater = function(name, models) {
 
-                socket.on(name, function(message) {
-                    var i;
+                var update = function(message) {
 
-                    switch (message.verb) {
+                    $rootScope.$evalAsync(function(){
+                        var i;
 
-                        case "created":
-                            // create new model item
-                            models.push(message.data);
-                            break;
+                        switch (message.verb) {
 
-                        case "updated":
-                            var obj;
-                            for (i = 0; i < models.length; i++) {
-                                if (models[i].id === message.id) {
-                                    obj = models[i];
-                                    break;
+                            case "created":
+                                // create new model item
+                                models.push(message.data);
+                                break;
+
+                            case "updated":
+                                var obj;
+                                for (i = 0; i < models.length; i++) {
+                                    if (models[i].id === message.id) {
+                                        obj = models[i];
+                                        break;
+                                    }
                                 }
-                            }
 
-                            // cant update if the angular-model does not have the item and the
-                            // sails message does not give us the previous record
-                            if (!obj && !message.previous) return;
+                                // cant update if the angular-model does not have the item and the
+                                // sails message does not give us the previous record
+                                if (!obj && !message.previous) return;
 
-                            if (!obj) {
-                                // sails has given us the previous record, create it in our model
-                                obj = message.previous;
-                                models.push(obj);
-                            }
-
-                            // update the model item
-                            angular.extend(obj, message.data);
-                            break;
-
-                        case "destroyed":
-                            for (i = 0; i < models.length; i++) {
-                                if (models[i].id === message.id) {
-                                    models.splice(i, 1);
-                                    break;
+                                if (!obj) {
+                                    // sails has given us the previous record, create it in our model
+                                    obj = message.previous;
+                                    models.push(obj);
                                 }
-                            }
-                            break;
-                    }
-                });
+
+                                // update the model item
+                                angular.extend(obj, message.data);
+                                break;
+
+                            case "destroyed":
+                                for (i = 0; i < models.length; i++) {
+                                    if (models[i].id === message.id) {
+                                        models.splice(i, 1);
+                                        break;
+                                    }
+                                }
+                                break;
+                        }
+                    });
+                };
+
+                socket.legacy_on(name, update);
+
+                return function(){
+                    socket.legacy_off(name, update);
+                };
             };
 
             return socket;
