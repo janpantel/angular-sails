@@ -241,7 +241,7 @@
              * @param {String} name       Sails model name
              * @param {Array} models      Array with model objects
              */
-            socket.$modelUpdater = function(name, models) {
+            socket.$modelUpdater = function(name, models, callback) {
 
                 var update = function(message) {
 
