@@ -71,14 +71,28 @@ angular.module('ngSails', ['ng']);
         // like https://docs.angularjs.org/api/ng/service/$http#interceptors
         // but with sails.io arguments
         var interceptorFactories = this.interceptors = [
-            /*function($injectables) {
+            function($injector) {
                 return {
-                    request: function(config) {},
-                    response: function(response) {},
-                    requestError: function(rejection) {},
-                    responseError: function(rejection) {}
+                    request: function (config) {
+                        var socket = $injector.get('$sails');
+                        if (socket.csrfToken && config.method !== "GET") {
+                            if (config.data == undefined) {
+                                config.data = {
+                                    _csrf: socket.csrfToken
+                                };
+                            }
+                            else if (!config.data._csrf) {
+                                config.data._csrf = socket.csrfToken;
+                            }
+                        }
+                        return config;
+                    }/*,
+                     response: function(response) {},
+                     requestError: function(rejection) {},
+                     responseError: function(rejection) {}
+                     }*/
                 };
-            }*/
+            }
         ];
 
         /*@ngInject*/
@@ -98,6 +112,10 @@ angular.module('ngSails', ['ng']);
                     socket._connect();
                 }
                 return socket;
+            };
+            socket.csrfToken = undefined;
+            socket.setCSRFToken = function(csrfToken){
+                socket.csrfToken = csrfToken;
             };
 
             // TODO: separate out interceptors into its own file (and provider?).
