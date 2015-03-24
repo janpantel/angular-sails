@@ -74,14 +74,18 @@ angular.module('ngSails', ['ng']);
             function($injector) {
                 return {
                     request: function (config) {
+                        //Get socket from service
                         var socket = $injector.get('$sails');
+                        //If we've got a CSRF token set and it's not a GET request then inject it
                         if (socket.csrfToken && config.method !== "GET") {
+                            //If data is empty then set the data object to just be CSRF token
                             if (config.data == undefined) {
                                 config.data = {
                                     _csrf: socket.csrfToken
                                 };
                             }
                             else if (!config.data._csrf) {
+                                //If data's set and CSRF isn't then inject it
                                 config.data._csrf = socket.csrfToken;
                             }
                         }
@@ -113,7 +117,9 @@ angular.module('ngSails', ['ng']);
                 }
                 return socket;
             };
+            //CSRF token set against socket
             socket.csrfToken = undefined;
+            //Function to allow the call of $sails.setCSRFToken("yourTokenFromServer");
             socket.setCSRFToken = function(csrfToken){
                 socket.csrfToken = csrfToken;
             };
