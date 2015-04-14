@@ -16,6 +16,9 @@ You must also include [sails.io.js](https://github.com/balderdashy/sails.io.js) 
 
 Usage
 -----
+
+For a more complex example, have a look at the [tutorial by Maarten](https://github.com/maartendb/angular-sails-scrum-tutorial).
+
 A small example:
 
 ```javascript
