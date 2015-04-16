@@ -7,9 +7,10 @@
     "build": "gulp build-js",
     "test": "gulp test"
   },
+  "main": "dist/angular-sails.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kyjan/angular-sails.git"
+    "url": "https://github.com/janpantel/angular-sails.git"
   },
   "author": "Jan-Oliver Pantel <info@janpantel.de>",
   "license": "MIT",
