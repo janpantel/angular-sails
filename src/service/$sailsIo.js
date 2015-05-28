@@ -145,7 +145,10 @@ function $sailsIo() {
     };
 
     angular.forEach(provider.httpVerbs, function(method) {
-      SailsIo.prototype[method] = SailsIo.prototype._req;
+      SailsIo.prototype[method] = function(req){
+        req.method = req.method || method;
+        return SailsIo.prototype._req.apply(this, [req]);
+      };
     });
 
     angular.forEach(provider.eventNames, function(ev) {
