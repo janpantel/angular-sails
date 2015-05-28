@@ -2,6 +2,7 @@
 
 /* jshint newcap: false */
 /* global headersGetter: true,
+  mergeHeaders: true,
   arrIndexOf: true,
   isFile: true,
   isBlob: true
@@ -26,9 +27,9 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
   };
 
   provider.defaults = {
-      transformResponse: [],
-      transformRequest: [],
-      headers: {} // TODO: default headers
+    transformResponse: [],
+    transformRequest: [],
+    headers: {} // TODO: what should the default default headers
   };
 
   provider.interceptors = $sailsInterceptorProvider.interceptors = [
@@ -42,9 +43,9 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
     }*/
   ];
 
-  this.$get = function($q, $log, $timeout, $sailsIo, $sailsInterceptor) {
+  this.$get = function($rootScope, $q, $log, $timeout, $sailsIo, $sailsInterceptor) {
     var socket = new $sailsIo(provider.socket || provider.url, provider.config);
-    var socketFunctions = ['connect','disconnect','isConnected'];
+    var socketFunctions = ['connect', 'disconnect', 'isConnected'];
 
     function $sails(config) {
       return $sails[config.method](config.url, config);
@@ -52,7 +53,7 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
 
     $sails._socket = socket;
 
-    function exposeSocketFunction(fnName){
+    function exposeSocketFunction(fnName) {
       $sails[fnName] = socket[fnName].bind(socket);
     }
 
@@ -62,8 +63,7 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
         var config = {
           method: methodName,
           transformRequest: provider.defaults.transformRequest,
-          transformResponse: provider.defaults.transformResponse,
-          headers: {}// TODO: default headers
+          transformResponse: provider.defaults.transformResponse
         };
 
         requestConfig = requestConfig || {};
@@ -76,9 +76,14 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
           requestConfig.data = data;
         }
 
-        angular.extend(config, requestConfig);
+        config = angular.extend({}, config, requestConfig);
+        config.headers = mergeHeaders(requestConfig, provider.defaults.headers);
         config.url = (provider.urlPrefix || '') + (url || config.url);
-        config.method = (config.method || methodName).toUpperCase();
+        config.method = angular.uppercase(config.method || methodName);
+
+        if (angular.isUndefined(config.withCredentials) && !angular.isUndefined(provider.defaults.withCredentials)) {
+          config.withCredentials = provider.defaults.withCredentials;
+        }
 
         var promise = $sailsInterceptor(socket[methodName].bind(socket), config);
 
@@ -113,56 +118,62 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
      * Update a model on sails pushes
      * @param {String} name       Sails model name
      * @param {Array} models      Array with model objects
+     * @returns {Function}        Function to remove the model updater instance
      */
     $sails.$modelUpdater = function(name, models) {
 
-      socket.on(name, function(message) {
-        var i;
+      var update = function(message) {
 
-        if (provider.debug) {
-          $log.info('$sails ' + name + ' model ' + message.verb + ' id: ' + message.id, message.data);
-        }
+        $rootScope.$evalAsync(function() {
+          var i;
 
-        switch (message.verb) {
+          switch (message.verb) {
 
-          case "created":
-            // create new model item
-            models.push(message.data);
-            break;
+            case "created":
+              // create new model item
+              models.push(message.data);
+              break;
 
-          case "updated":
-            var obj;
-            for (i = 0; i < models.length; i++) {
-              if (models[i].id === message.id) {
-                obj = models[i];
-                break;
+            case "updated":
+              var obj;
+              for (i = 0; i < models.length; i++) {
+                if (models[i].id === message.id) {
+                  obj = models[i];
+                  break;
+                }
               }
-            }
 
-            // cant update if the angular-model does not have the item and the
-            // sails message does not give us the previous record
-            if (!obj && !message.previous) return;
+              // cant update if the angular-model does not have the item and the
+              // sails message does not give us the previous record
+              if (!obj && !message.previous) return;
 
-            if (!obj) {
-              // sails has given us the previous record, create it in our model
-              obj = message.previous;
-              models.push(obj);
-            }
-
-            // update the model item
-            angular.extend(obj, message.data);
-            break;
-
-          case "destroyed":
-            for (i = 0; i < models.length; i++) {
-              if (models[i].id === message.id) {
-                models.splice(i, 1);
-                break;
+              if (!obj) {
+                // sails has given us the previous record, create it in our model
+                obj = message.previous;
+                models.push(obj);
               }
-            }
-            break;
-        }
-      });
+
+              // update the model item
+              angular.extend(obj, message.data);
+              break;
+
+            case "destroyed":
+              for (i = 0; i < models.length; i++) {
+                if (models[i].id === message.id) {
+                  models.splice(i, 1);
+                  break;
+                }
+              }
+              break;
+          }
+        });
+      };
+
+      socket._socket.on(name, update);
+
+      return function() {
+        socket._socket.off(name, update);
+      };
     };
 
     $sails.defaults = this.defaults;

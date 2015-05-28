@@ -16,6 +16,67 @@ function parseHeaders(headers) {
   return parsed;
 }
 
+function executeHeaderFns(headers, config) {
+  var headerContent, processedHeaders = {};
+
+  angular.forEach(headers, function(headerFn, header) {
+    if (angular.isFunction(headerFn)) {
+      headerContent = headerFn(config);
+      if (headerContent != null) {
+        processedHeaders[header] = headerContent;
+      }
+    } else {
+      processedHeaders[header] = headerFn;
+    }
+  });
+
+  return processedHeaders;
+}
+
+function mergeHeaders(config, defHeaders) {
+  var reqHeaders = angular.extend({}, config.headers),
+      defHeaderName, lowercaseDefHeaderName, reqHeaderName;
+
+  defHeaders = angular.extend({}, defHeaders.common, defHeaders[angular.lowercase(config.method)]);
+
+  // using for-in instead of forEach to avoid unecessary iteration after header has been found
+  defaultHeadersIteration:
+  for (defHeaderName in defHeaders) {
+    lowercaseDefHeaderName = angular.lowercase(defHeaderName);
+
+    for (reqHeaderName in reqHeaders) {
+      if (angular.lowercase(reqHeaderName) === lowercaseDefHeaderName) {
+        continue defaultHeadersIteration;
+      }
+    }
+
+    reqHeaders[defHeaderName] = defHeaders[defHeaderName];
+  }
+
+  // execute if header value is a function for merged headers
+  return executeHeaderFns(reqHeaders, shallowCopy(config));
+}
+
+function shallowCopy(src, dst) {
+  if (angular.isArray(src)) {
+    dst = dst || [];
+
+    for (var i = 0, ii = src.length; i < ii; i++) {
+      dst[i] = src[i];
+    }
+  } else if (angular.isObject(src)) {
+    dst = dst || {};
+
+    for (var key in src) {
+      if (!(key.charAt(0) === '$' && key.charAt(1) === '$')) {
+        dst[key] = src[key];
+      }
+    }
+  }
+
+  return dst || src;
+}
+
 function trim(value) {
   return angular.isString(value) ? value.trim() : value;
 }

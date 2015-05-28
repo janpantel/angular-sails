@@ -1,22 +1,27 @@
 {
   "name": "angular-sails",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0-beta.2",
   "description": "An angular provider for using the sails socket.io api",
   "scripts": {
-    "build": "gulp build-js",
+    "build": "gulp build",
     "test": "gulp test"
   },
+  "main": "dist/angular-sails.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/kyjan/angular-sails.git"
   },
-  "author": "Jan-Oliver Pantel <info@janpantel.de>",
+  "author": "Jan-Oliver Pantel <jan.pantel@gmail.com>",
+  "contributors": [
+    "Jan-Oliver Pantel <jan.pantel@gmail.com>",
+    "Evan Sharp <dumbdrum@gmail.com>"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kyjan/angular-sails/issues"
+    "url": "https://github.com/janpantel/angular-sails/issues"
   },
-  "homepage": "https://github.com/kyjan/angular-sails",
+  "homepage": "https://github.com/janpantel/angular-sails",
   "devDependencies": {
     "chai": "^1.10.0",
     "gulp": "^3.5.6",

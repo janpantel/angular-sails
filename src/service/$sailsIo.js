@@ -85,7 +85,7 @@ function $sailsIo() {
 
     SailsIo.prototype._send = function(req, res) {
       var self = this;
-      var sailsEndpoint = req.method.toLowerCase();
+      var sailsEndpoint = angular.lowercase(req.method);
 
       self.connectDefer.promise.then(function sendRequest() {
         if (provider.debug) {
@@ -132,7 +132,7 @@ function $sailsIo() {
       req.url = buildUrl(req.url.replace(/^(.+)\/*\s*$/, '$1'), req.params);
       req.headers = req.headers || {};
       req.data = req.data || {};
-      req.method = req.method.toUpperCase();
+      req.method = angular.uppercase(req.method);
 
       if (typeof req.url !== 'string') {
         throw new Error('Invalid or missing URL!');
