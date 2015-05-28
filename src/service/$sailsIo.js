@@ -43,7 +43,7 @@ function $sailsIo() {
         }
 
         if (!self._socket || !self._socket.connected) {
-          self._socket = io(config.url, config);
+          self._socket = io(url || config.url, config);
           self.connectDefer.resolve();
         }
       }
