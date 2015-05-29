@@ -1,8 +1,8 @@
 /*!
  * angular-sails
  * An angular provider for using the sails socket.io api
- * @version v1.1.0
- * @link https://github.com/kyjan/angular-sails
+ * @version v2.0.0-beta.3
+ * @link https://github.com/janpantel/angular-sails
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
 (function(window, angular, undefined){'use strict';
@@ -25,6 +25,67 @@ function parseHeaders(headers) {
   });
 
   return parsed;
+}
+
+function executeHeaderFns(headers, config) {
+  var headerContent, processedHeaders = {};
+
+  angular.forEach(headers, function(headerFn, header) {
+    if (angular.isFunction(headerFn)) {
+      headerContent = headerFn(config);
+      if (headerContent != null) {
+        processedHeaders[header] = headerContent;
+      }
+    } else {
+      processedHeaders[header] = headerFn;
+    }
+  });
+
+  return processedHeaders;
+}
+
+function mergeHeaders(config, defHeaders) {
+  var reqHeaders = angular.extend({}, config.headers),
+      defHeaderName, lowercaseDefHeaderName, reqHeaderName;
+
+  defHeaders = angular.extend({}, defHeaders.common, defHeaders[angular.lowercase(config.method)]);
+
+  // using for-in instead of forEach to avoid unecessary iteration after header has been found
+  defaultHeadersIteration:
+  for (defHeaderName in defHeaders) {
+    lowercaseDefHeaderName = angular.lowercase(defHeaderName);
+
+    for (reqHeaderName in reqHeaders) {
+      if (angular.lowercase(reqHeaderName) === lowercaseDefHeaderName) {
+        continue defaultHeadersIteration;
+      }
+    }
+
+    reqHeaders[defHeaderName] = defHeaders[defHeaderName];
+  }
+
+  // execute if header value is a function for merged headers
+  return executeHeaderFns(reqHeaders, shallowCopy(config));
+}
+
+function shallowCopy(src, dst) {
+  if (angular.isArray(src)) {
+    dst = dst || [];
+
+    for (var i = 0, ii = src.length; i < ii; i++) {
+      dst[i] = src[i];
+    }
+  } else if (angular.isObject(src)) {
+    dst = dst || {};
+
+    for (var key in src) {
+      if (!(key.charAt(0) === '$' && key.charAt(1) === '$')) {
+        dst[key] = src[key];
+      }
+    }
+  }
+
+  return dst || src;
 }
 
 function trim(value) {
@@ -201,6 +262,7 @@ var statusText = {
 
 /* jshint newcap: false */
 /* global headersGetter: true,
+  mergeHeaders: true,
   arrIndexOf: true,
   isFile: true,
   isBlob: true
@@ -225,9 +287,9 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
   };
 
   provider.defaults = {
-      transformResponse: [],
-      transformRequest: [],
-      headers: {} // TODO: default headers
+    transformResponse: [],
+    transformRequest: [],
+    headers: {} // TODO: what should the default default headers
   };
 
   provider.interceptors = $sailsInterceptorProvider.interceptors = [
@@ -241,9 +303,9 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
     }*/
   ];
 
-  this.$get = ["$q", "$log", "$timeout", "$sailsIo", "$sailsInterceptor", function($q, $log, $timeout, $sailsIo, $sailsInterceptor) {
+  this.$get = ["$rootScope", "$q", "$log", "$timeout", "$sailsIo", "$sailsInterceptor", function($rootScope, $q, $log, $timeout, $sailsIo, $sailsInterceptor) {
     var socket = new $sailsIo(provider.socket || provider.url, provider.config);
-    var socketFunctions = ['connect','disconnect','isConnected'];
+    var socketFunctions = ['connect', 'disconnect', 'isConnected'];
 
     function $sails(config) {
       return $sails[config.method](config.url, config);
@@ -251,7 +313,7 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
 
     $sails._socket = socket;
 
-    function exposeSocketFunction(fnName){
+    function exposeSocketFunction(fnName) {
       $sails[fnName] = socket[fnName].bind(socket);
     }
 
@@ -261,8 +323,7 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
         var config = {
           method: methodName,
           transformRequest: provider.defaults.transformRequest,
-          transformResponse: provider.defaults.transformResponse,
-          headers: {}// TODO: default headers
+          transformResponse: provider.defaults.transformResponse
         };
 
         requestConfig = requestConfig || {};
@@ -275,9 +336,14 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
           requestConfig.data = data;
         }
 
-        angular.extend(config, requestConfig);
+        config = angular.extend({}, config, requestConfig);
+        config.method = angular.uppercase(config.method || methodName);
+        config.headers = mergeHeaders(config, provider.defaults.headers);
         config.url = (provider.urlPrefix || '') + (url || config.url);
-        config.method = (config.method || methodName).toUpperCase();
+
+        if (angular.isUndefined(config.withCredentials) && !angular.isUndefined(provider.defaults.withCredentials)) {
+          config.withCredentials = provider.defaults.withCredentials;
+        }
 
         var promise = $sailsInterceptor(socket[methodName].bind(socket), config);
 
@@ -312,56 +378,62 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
      * Update a model on sails pushes
      * @param {String} name       Sails model name
      * @param {Array} models      Array with model objects
+     * @returns {Function}        Function to remove the model updater instance
      */
     $sails.$modelUpdater = function(name, models) {
 
-      socket.on(name, function(message) {
-        var i;
+      var update = function(message) {
 
-        if (provider.debug) {
-          $log.info('$sails ' + name + ' model ' + message.verb + ' id: ' + message.id, message.data);
-        }
+        $rootScope.$evalAsync(function() {
+          var i;
 
-        switch (message.verb) {
+          switch (message.verb) {
 
-          case "created":
-            // create new model item
-            models.push(message.data);
-            break;
+            case "created":
+              // create new model item
+              models.push(message.data);
+              break;
 
-          case "updated":
-            var obj;
-            for (i = 0; i < models.length; i++) {
-              if (models[i].id === message.id) {
-                obj = models[i];
-                break;
+            case "updated":
+              var obj;
+              for (i = 0; i < models.length; i++) {
+                if (models[i].id === message.id) {
+                  obj = models[i];
+                  break;
+                }
               }
-            }
 
-            // cant update if the angular-model does not have the item and the
-            // sails message does not give us the previous record
-            if (!obj && !message.previous) return;
+              // cant update if the angular-model does not have the item and the
+              // sails message does not give us the previous record
+              if (!obj && !message.previous) return;
 
-            if (!obj) {
-              // sails has given us the previous record, create it in our model
-              obj = message.previous;
-              models.push(obj);
-            }
-
-            // update the model item
-            angular.extend(obj, message.data);
-            break;
-
-          case "destroyed":
-            for (i = 0; i < models.length; i++) {
-              if (models[i].id === message.id) {
-                models.splice(i, 1);
-                break;
+              if (!obj) {
+                // sails has given us the previous record, create it in our model
+                obj = message.previous;
+                models.push(obj);
               }
-            }
-            break;
-        }
-      });
+
+              // update the model item
+              angular.extend(obj, message.data);
+              break;
+
+            case "destroyed":
+              for (i = 0; i < models.length; i++) {
+                if (models[i].id === message.id) {
+                  models.splice(i, 1);
+                  break;
+                }
+              }
+              break;
+          }
+        });
+      };
+
+      socket._socket.on(name, update);
+
+      return function() {
+        socket._socket.off(name, update);
+      };
     };
 
     $sails.defaults = this.defaults;
@@ -497,7 +569,7 @@ function $sailsIo() {
         }
 
         if (!self._socket || !self._socket.connected) {
-          self._socket = io(config.url, config);
+          self._socket = io(url || config.url, config);
           self.connectDefer.resolve();
         }
       }
@@ -539,23 +611,28 @@ function $sailsIo() {
 
     SailsIo.prototype._send = function(req, res) {
       var self = this;
-      var sailsEndpoint = req.method.toLowerCase();
+      var sailsEndpoint = angular.lowercase(req.method);
 
       self.connectDefer.promise.then(function sendRequest() {
         if (provider.debug) {
           $log.info('$sails ' + req.method + ' ' + req.url, req.data || '');
         }
 
-        self._socket.emit(sailsEndpoint, req, function requestResponse(response) {
-            if (provider.debug) {
-              $log.info('$sails' + req.method + ' ' + req.url + ' response received', response);
-            }
+        self._socket.emit(sailsEndpoint, {data: req.data, headers: req.headers, url: req.url}, function requestResponse(response) {
+          if (provider.debug) {
+            $log.info('$sails' + req.method + ' ' + req.url + ' response received', response);
+          }
+
+          response = response || {};
+
           var serverResponse = {
-            data: response.body || response || {},
+            data: response.body || response,
             status: response.statusCode || response.status || response.Status || 200,
             headers: response.headers || {},
             config: req
           };
+
+          delete serverResponse.headers;
 
           serverResponse.statusText = statusText[serverResponse.status];
 
@@ -583,10 +660,10 @@ function $sailsIo() {
       var self = this;
       var res = $q.defer();
 
-      req.url = buildUrl(req.url.replace(/^(.+)\/*\s*$/, '$1'), req.params);
+      req.url = req.url.replace(/^(.+)\/*\s*$/, '$1');
       req.headers = req.headers || {};
-      req.data = req.data || {};
-      req.method = req.method.toUpperCase();
+      req.data = req.params || req.data || {};
+      req.method = angular.uppercase(req.method);
 
       if (typeof req.url !== 'string') {
         throw new Error('Invalid or missing URL!');
@@ -599,7 +676,10 @@ function $sailsIo() {
     };
 
     angular.forEach(provider.httpVerbs, function(method) {
-      SailsIo.prototype[method] = SailsIo.prototype._req;
+      SailsIo.prototype[method] = function(req){
+        req.method = req.method || method;
+        return SailsIo.prototype._req.apply(this, [req]);
+      };
     });
 
     angular.forEach(provider.eventNames, function(ev) {

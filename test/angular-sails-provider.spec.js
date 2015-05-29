@@ -214,7 +214,6 @@ describe('Agnular Sails provider', function() {
                 inject(function($rootScope, $sails) {
                     var errorSpy = sinon.spy();
                     $sails._socket._socket.on('post', function(ctx, cb){
-                        expect(ctx.method).to.equal('POST');
                         expect(ctx.url).to.equal('success');
                         expect(ctx.data).to.deep.equal({value: true});
                         socketRequestSpy();

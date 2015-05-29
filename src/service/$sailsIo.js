@@ -92,16 +92,21 @@ function $sailsIo() {
           $log.info('$sails ' + req.method + ' ' + req.url, req.data || '');
         }
 
-        self._socket.emit(sailsEndpoint, req, function requestResponse(response) {
-            if (provider.debug) {
-              $log.info('$sails' + req.method + ' ' + req.url + ' response received', response);
-            }
+        self._socket.emit(sailsEndpoint, {data: req.data, headers: req.headers, url: req.url}, function requestResponse(response) {
+          if (provider.debug) {
+            $log.info('$sails' + req.method + ' ' + req.url + ' response received', response);
+          }
+
+          response = response || {};
+
           var serverResponse = {
-            data: response.body || response || {},
+            data: response.body || response,
             status: response.statusCode || response.status || response.Status || 200,
             headers: response.headers || {},
             config: req
           };
+
+          delete serverResponse.headers;
 
           serverResponse.statusText = statusText[serverResponse.status];
 
@@ -129,9 +134,9 @@ function $sailsIo() {
       var self = this;
       var res = $q.defer();
 
-      req.url = buildUrl(req.url.replace(/^(.+)\/*\s*$/, '$1'), req.params);
+      req.url = req.url.replace(/^(.+)\/*\s*$/, '$1');
       req.headers = req.headers || {};
-      req.data = req.data || {};
+      req.data = req.params || req.data || {};
       req.method = angular.uppercase(req.method);
 
       if (typeof req.url !== 'string') {

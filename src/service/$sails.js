@@ -77,9 +77,9 @@ function $sails($sailsInterceptorProvider, $sailsIoProvider) {
         }
 
         config = angular.extend({}, config, requestConfig);
-        config.headers = mergeHeaders(requestConfig, provider.defaults.headers);
-        config.url = (provider.urlPrefix || '') + (url || config.url);
         config.method = angular.uppercase(config.method || methodName);
+        config.headers = mergeHeaders(config, provider.defaults.headers);
+        config.url = (provider.urlPrefix || '') + (url || config.url);
 
         if (angular.isUndefined(config.withCredentials) && !angular.isUndefined(provider.defaults.withCredentials)) {
           config.withCredentials = provider.defaults.withCredentials;

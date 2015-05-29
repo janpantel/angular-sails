@@ -34,6 +34,10 @@ gulp.task('bump', function() {
     .pipe(gulp.dest('./'));
 });
 
+gulp.task('updatePkg', function(){
+  pkg = require('./package.json');
+});
+
 gulp.task('buildDev', function() {
   return gulp.src(files.mergeFilesFor('src'))
     .pipe(jshint())
@@ -84,4 +88,4 @@ gulp.task('testMin', function() {
 
 gulp.task('build', gulpSequence('buildDev', 'minBuild', ['testBuild', 'testMin']));
 
-gulp.task('release', gulpSequence('bump', 'build', 'copyBuild'));
+gulp.task('release', gulpSequence('bump', 'updatePkg', 'build', 'copyBuild'));
