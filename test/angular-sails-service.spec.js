@@ -109,19 +109,102 @@ describe('Agnular Sails service', function() {
     describe('on', function() {
 
         it('should apply asynchronously', function () {
-            var eventHandler = $sails.on('event', spy);
+            $sails.on('event', spy);
             mockIoSocket.emit('event');
 
             expect(spy).to.have.been.not.called;
             $scope.$digest();
 
             expect(spy).to.have.been.calledOnce;
-            
-            $sails.off('event', eventHandler);
+        });
+		
+		it('should allow multiple listeners for the same event', function () {
+			var eventSpy = sinon.spy()
+            $sails.on('event', spy);
+            $sails.on('event', eventSpy);
             mockIoSocket.emit('event');
             $scope.$digest();
-            
+
             expect(spy).to.have.been.calledOnce;
+            expect(eventSpy).to.have.been.calledOnce;
+        });
+		
+		it('should call the correct lisener', function () {
+			var eventSpy = sinon.spy()
+            $sails.on('event', spy);
+            $sails.on('anotherEvent', eventSpy);
+            mockIoSocket.emit('event');
+            $scope.$digest();
+
+            expect(spy).to.have.been.calledOnce;
+            expect(eventSpy).to.have.not.been.called;
+        });
+
+    });
+	
+	describe('off', function() {
+		
+        describe('by event name only', function(){
+
+            it('should remove all event listener by the given name', function () {
+                var eventSpy = sinon.spy()
+                $sails.on('event', spy);
+                $sails.on('event', eventSpy);
+                $sails.off('event');
+                mockIoSocket.emit('event');
+                $scope.$digest();
+
+                expect(spy).to.have.not.been.called;
+                expect(eventSpy).to.have.not.been.called;
+            });
+            
+            it('should only the listeners that match the given event name', function () {
+                var eventSpy = sinon.spy()
+                var anotherEventSpy = sinon.spy()
+                $sails.on('event', spy);
+                $sails.on('event', eventSpy);
+                $sails.on('anotherEvent', anotherEventSpy);
+                
+                $sails.off('event');
+                mockIoSocket.emit('event');
+                mockIoSocket.emit('anotherEvent');
+                $scope.$digest();
+
+                expect(spy).to.have.not.been.called;
+                expect(eventSpy).to.have.not.been.called;
+                expect(anotherEventSpy).to.have.been.calledOnce;
+            });
+            
+        });
+        
+        describe('by event name and function', function(){
+
+            it('should remove the listener with that function', function () {
+                var listener = $sails.on('event', spy);
+                $sails.off('event', listener);
+                mockIoSocket.emit('event');
+                $scope.$digest();
+
+                expect(spy).to.have.not.been.called;
+            });
+            
+            it('should only remove the listener with the function', function () {
+                var eventSpy = sinon.spy()
+                var anotherEventSpy = sinon.spy()
+                $sails.on('event', spy);
+                var listner = $sails.on('event', eventSpy);
+                $sails.on('anotherEvent', anotherEventSpy);
+                
+                $sails.off('event', listner);
+                mockIoSocket.emit('event');
+                mockIoSocket.emit('anotherEvent');
+                $scope.$digest();
+
+                expect(eventSpy).to.have.not.been.called;
+                expect(spy).to.have.been.calledOnce;
+                expect(anotherEventSpy).to.have.been.calledOnce;
+            });
+            
         });
 
     });

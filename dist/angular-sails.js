@@ -213,14 +213,18 @@ angular.module('ngSails', ['ng']);
             }
 
             function wrapEvent(eventName) {
-                if(socket[eventName] || socket._raw && socket._raw[eventName]){
+                if(socket[eventName] || socket._raw && socket._raw[eventName]) {
                     socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
                     socket[eventName] = function(event, cb) {
-                        if (cb !== null && angular.isFunction(cb)) {
-                            socket['legacy_' + eventName](event, function(result) {
+                    	var wrapEventFn = null;
+                        if (eventName == 'off') {
+                            return socket['legacy_' + eventName](event, cb);
+                        }else if (cb !== null && angular.isFunction(cb)) {
+                            socket['legacy_' + eventName](event, wrapEventFn = function(result) {
                                 $rootScope.$evalAsync(cb.bind(socket, result));
                             });
                         }
+                        return wrapEventFn;
                     };
                 }
             }

@@ -213,14 +213,12 @@
                     socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
                     socket[eventName] = function(event, cb) {
                     	var wrapEventFn = null;
-                        if (cb !== null && angular.isFunction(cb)) {
-                          if (eventName == 'off') {
-                        	  socket['legacy_' + eventName](event, cb);
-                          } else {
-	                          socket['legacy_' + eventName](event, wrapEventFn = function(result) {
-	                            $rootScope.$evalAsync(cb.bind(socket, result));
-	                          });
-                          }
+                        if (eventName == 'off') {
+                            return socket['legacy_' + eventName](event, cb);
+                        }else if (cb !== null && angular.isFunction(cb)) {
+                            socket['legacy_' + eventName](event, wrapEventFn = function(result) {
+                                $rootScope.$evalAsync(cb.bind(socket, result));
+                            });
                         }
                         return wrapEventFn;
                     };
