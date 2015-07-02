@@ -209,19 +209,22 @@
             }
 
             function wrapEvent(eventName) {
-            	var wrapEventFn = null;
-                if(socket[eventName] || socket._raw && socket._raw[eventName]){
+                if(socket[eventName] || socket._raw && socket._raw[eventName]) {
                     socket['legacy_' + eventName] = socket[eventName] || socket._raw[eventName];
                     socket[eventName] = function(event, cb) {
+                    	var wrapEventFn = null;
                         if (cb !== null && angular.isFunction(cb)) {
-                          wrapEventFn = function(result) {
-                            $rootScope.$evalAsync(cb.bind(socket, result));
-                          };
-                          socket['legacy_' + eventName](event, wrapEventFn);
+                          if (eventName == 'off') {
+                        	  socket['legacy_' + eventName](event, cb);
+                          } else {
+	                          socket['legacy_' + eventName](event, wrapEventFn = function(result) {
+	                            $rootScope.$evalAsync(cb.bind(socket, result));
+	                          });
+                          }
                         }
+                        return wrapEventFn;
                     };
                 }
-                return wrapEventFn;
             }
 
             // sails.io.js doesn't have `once`, need to access it through `._raw`

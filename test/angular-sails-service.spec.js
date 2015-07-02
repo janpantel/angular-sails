@@ -109,12 +109,18 @@ describe('Agnular Sails service', function() {
     describe('on', function() {
 
         it('should apply asynchronously', function () {
-            $sails.on('event', spy);
+            var eventHandler = $sails.on('event', spy);
             mockIoSocket.emit('event');
 
             expect(spy).to.have.been.not.called;
             $scope.$digest();
 
+            expect(spy).to.have.been.calledOnce;
+            
+            $sails.off('event', eventHandler);
+            mockIoSocket.emit('event');
+            $scope.$digest();
+            
             expect(spy).to.have.been.calledOnce;
         });
 
