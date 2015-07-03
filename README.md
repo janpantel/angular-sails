@@ -51,11 +51,17 @@ app.controller("FooController", function ($scope, $sails) {
       });
 
     // Watching for updates
-    $sails.on("bars", function (message) {
+    var barsHandler = $sails.on("bars", function (message) {
       if (message.verb === "created") {
         $scope.bars.push(message.data);
       }
     });
+    
+    // Stop watching for updates
+    $scope.$on('$destroy', function() {
+      $sails.off('bars', barsHandler);
+    });
+    
   }());
 });
 ```
