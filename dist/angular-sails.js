@@ -310,4 +310,3 @@ angular.module('ngSails', ['ng']);
         this.$get.$inject = ["$q", "$injector", "$rootScope", "$log", "$timeout"];
     });
 }(angular, io));
-}(angular, io));
