@@ -58,7 +58,7 @@
         this.urlPrefix = '';
 
         this.config = {
-            transports: ['websocket', 'polling'],
+            transports: ['polling', 'websocket'],
             useCORSRouteToGetCookie: false
         };
 
