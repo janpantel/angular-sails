@@ -632,7 +632,8 @@ function $sailsIo() {
             config: req
           };
 
-          delete serverResponse.headers;
+          // Nick
+          // delete serverResponse.headers;
 
           serverResponse.statusText = statusText[serverResponse.status];
 
