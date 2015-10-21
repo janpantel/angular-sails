@@ -106,8 +106,6 @@ function $sailsIo() {
             config: req
           };
 
-          delete serverResponse.headers;
-
           serverResponse.statusText = statusText[serverResponse.status];
 
           if (200 <= serverResponse.status && serverResponse.status < 300) {

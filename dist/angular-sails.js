@@ -1,7 +1,7 @@
 /*!
  * angular-sails
  * An angular provider for using the sails socket.io api
- * @version v2.0.0-beta.3
+ * @version v2.0.0-beta.4
  * @link https://github.com/janpantel/angular-sails
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
@@ -631,9 +631,6 @@ function $sailsIo() {
             headers: response.headers || {},
             config: req
           };
-
-          // Nick
-          // delete serverResponse.headers;
 
           serverResponse.statusText = statusText[serverResponse.status];
 
