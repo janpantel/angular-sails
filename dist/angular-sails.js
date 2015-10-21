@@ -616,7 +616,6 @@ function $sailsIo() {
       self.connectDefer.promise.then(function sendRequest() {
         if (provider.debug) {
           $log.info('$sails ' + req.method + ' ' + req.url, req.data || '');
-          $log.info('Full $sails request:', req);
         }
 
         self._socket.emit(sailsEndpoint, {data: req.data, headers: req.headers, url: req.url}, function requestResponse(response) {
@@ -633,6 +632,7 @@ function $sailsIo() {
             config: req
           };
 
+          // Nick
           // delete serverResponse.headers;
 
           serverResponse.statusText = statusText[serverResponse.status];
