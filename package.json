@@ -1,13 +1,12 @@
 {
   "name": "angular-sails",
-  "private": true,
   "version": "1.1.4",
   "description": "An angular provider for using the sails socket.io api",
   "scripts": {
     "build": "gulp build-js",
     "test": "gulp test"
   },
-  "main": "dist/angular-sails.js",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/janpantel/angular-sails.git"
@@ -18,6 +17,10 @@
     "url": "https://github.com/kyjan/angular-sails/issues"
   },
   "homepage": "https://github.com/kyjan/angular-sails",
+  "dependencies": {
+    "angular": "^1.3.0",
+    "sails.io.js": "^0.11.0"
+  },
   "devDependencies": {
     "chai": "^1.10.0",
     "gulp": "^3.5.6",
