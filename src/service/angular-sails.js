@@ -245,7 +245,7 @@
              * @param {String} name       Sails model name
              * @param {Array} models      Array with model objects
              */
-            socket.$modelUpdater = function(name, models) {
+            socket.$modelUpdater = function(name, models, callback) {
 
                 var update = function(message) {
 
@@ -256,7 +256,10 @@
 
                             case "created":
                                 // create new model item
-                                models.push(message.data);
+                                var len = models.push(message.data);
+                                if (callback) {
+                                    callback(models[len-1], message.verb);
+                                }
                                 break;
 
                             case "updated":
@@ -280,14 +283,22 @@
 
                                 // update the model item
                                 angular.extend(obj, message.data);
+                                if (callback) {
+                                    callback(obj, message.verb);
+                                }
                                 break;
 
                             case "destroyed":
+                            	var destroyedObj;
                                 for (i = 0; i < models.length; i++) {
                                     if (models[i].id === message.id) {
+                                        destroyedObj = models[i];
                                         models.splice(i, 1);
                                         break;
                                     }
+                                }
+                                if (callback && destroyedObj) {
+                                    callback(destroyedObj, message.verb);
                                 }
                                 break;
                         }
