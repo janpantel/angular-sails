@@ -71,14 +71,32 @@ angular.module('ngSails', ['ng']);
         // like https://docs.angularjs.org/api/ng/service/$http#interceptors
         // but with sails.io arguments
         var interceptorFactories = this.interceptors = [
-            /*function($injectables) {
+            function($injector) {
                 return {
-                    request: function(config) {},
-                    response: function(response) {},
-                    requestError: function(rejection) {},
-                    responseError: function(rejection) {}
+                    request: function (config) {
+                        //Get socket from service
+                        var socket = $injector.get('$sails');
+                        //If we've got a CSRF token set and it's not a GET request then inject it
+                        if (socket.csrfToken && config.method !== "GET") {
+                            //If data is empty then set the data object to just be CSRF token
+                            if (config.data == undefined) {
+                                config.data = {
+                                    _csrf: socket.csrfToken
+                                };
+                            }
+                            else if (!config.data._csrf) {
+                                //If data's set and CSRF isn't then inject it
+                                config.data._csrf = socket.csrfToken;
+                            }
+                        }
+                        return config;
+                    }/*,
+                     response: function(response) {},
+                     requestError: function(rejection) {},
+                     responseError: function(rejection) {}
+                     }*/
                 };
-            }*/
+            }
         ];
 
         /*@ngInject*/
@@ -98,6 +116,12 @@ angular.module('ngSails', ['ng']);
                     socket._connect();
                 }
                 return socket;
+            };
+            //CSRF token set against socket
+            socket.csrfToken = undefined;
+            //Function to allow the call of $sails.setCSRFToken("yourTokenFromServer");
+            socket.setCSRFToken = function(csrfToken){
+                socket.csrfToken = csrfToken;
             };
 
             // TODO: separate out interceptors into its own file (and provider?).
